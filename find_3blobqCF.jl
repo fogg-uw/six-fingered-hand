@@ -199,9 +199,9 @@ function quartettype_qCF(net::HybridNetwork, genetreefile::AbstractString,
     
     # hack-y fix to hybridlamdaformat(); need to change hybrid node notation from (e.g.) #H22:1.0 to H22#:1.0
     # cecile is working on a (less hack-y?) fix to the hybridlambdaformat() function.
-    re = r"(\#)(H\d+)(\:-?\d+)" # e.g #H22:1.0 or #H22:-0.1
-    su = s"\2\1\3" # move # in position 1 to position 2
-    netHL = replace(netHL, re => su)
+    #re = r"(\#)(H\d+)(\:-?\d+)" # e.g #H22:1.0 or #H22:-0.1
+    #su = s"\2\1\3" # move # in position 1 to position 2
+    #netHL = replace(netHL, re => su)
     
     netHL = "'$netHL'" # quoted
     hlcommand = `$hybridlambda -spcu $netHL -num $nsim -seed $seed -o $genetreefile`
@@ -245,9 +245,9 @@ function quartettype_qCF(net::HybridNetwork, genetreefile::AbstractString,
        splittype(perm_splits[2,:]) + 1,
        splittype(perm_splits[3,:]) + 1]
 
-      obsCF[1].data[1] = corrupted_CF[perm_splits_2[1]]
-      obsCF[1].data[2] = corrupted_CF[perm_splits_2[2]]
-      obsCF[1].data[3] = corrupted_CF[perm_splits_2[3]]
+      obsCF[1].data[perm_splits_2[1]] = corrupted_CF[1]
+      obsCF[1].data[perm_splits_2[2]] = corrupted_CF[2]
+      obsCF[1].data[perm_splits_2[3]] = corrupted_CF[3]
 
       t = taxonlist
 
