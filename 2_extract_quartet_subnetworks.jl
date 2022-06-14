@@ -53,10 +53,11 @@ for file in files
 		continue
 	end
 
-	
+	"""
 	# add weights to all hybrid edges (here, just 1/2)
 	# jf 2022-06-10: unnecessary now that SiPhyNetwork::write.net is working and ape::write.evonet is not used in 1_sim_networks.R
-	# jf 2022-06-10: but i'll still do it to see if i can make hybridlambda'a parser happy.
+	# jf 2022-06-10: but i'll still do it to see if i can make hybridlambda's parser happy.
+	# jf 2022-06-14: or maybe not.  that doesn't seem to be the problem.
 	for node in tree.node
 		if node.hybrid
 			global g1 = (1/2) # + (rand(Float16)/2) # major hybrid weight
@@ -76,6 +77,7 @@ for file in files
 			end
 		end
 	end
+	"""
 
 	"""
 	# try to ultrametrize the network
