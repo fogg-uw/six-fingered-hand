@@ -157,7 +157,7 @@ for file in files
 			nothing
 		elseif quartet_num3blob > 0
 			#print("   6. if there is a 3-degree blob (therefore no 4-degree blob), then:")
-			ngenes=800
+			ngenes=3200
 			outputdir = "hl_output";
 			ispath(outputdir) || mkdir(outputdir);
 			gt = joinpath(outputdir, "d3blob"); # this file will be created then deleted

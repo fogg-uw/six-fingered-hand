@@ -163,5 +163,6 @@ y = sapply(list(a,b,c, split_s), FUN=function(x) x[2], simplify=TRUE)
 
 #quartets$B = quartets$A & quartets$split1 > -1
 
+set.seed(1545 + 6) # current time + millisecond on stopwatch
 good_sample = sample(x=(1:nrow(quartets))[              quartets$B], size=3, replace=F)
 bad_sample  = sample(x=(1:nrow(quartets))[quartets$A & !quartets$B], size=3, replace=F)
