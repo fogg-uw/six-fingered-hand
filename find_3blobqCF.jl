@@ -197,28 +197,9 @@ function quartettype_qCF(net::HybridNetwork, genetreefile::AbstractString,
     nsplits = size(mat,1)
     isnothing(seed) || Random.seed!(seed)
 
-    #gtcu = genetreefile * "_coal_unit"  # name of output file created by hybrid-Lambda
-    #netHL = hybridlambdaformat(net) # string format for the network, as required by hybrid-lambda
-    
-    # hack-y fix to hybridlamdaformat(); need to change hybrid node notation from (e.g.) #H22:1.0 to H22#:1.0
-    # cecile is working on a (less hack-y?) fix to the hybridlambdaformat() function.
-    #re = r"(\#)(H\d+)(\:-?\d+)" # e.g #H22:1.0 or #H22:-0.1
-    #su = s"\2\1\3" # move # in position 1 to position 2
-    #netHL = replace(netHL, re => su)
-    
-    #netHL = "'$netHL'" # quoted
-    #hlcommand = `$hybridlambda -spcu $netHL -num $nsim -seed $seed -o $genetreefile`
-    #hlout = ( verbose ? stdout : devnull )
-    #run(pipeline(hlcommand; stderr = hlout));
-    #treelist = readMultiTopology(gtcu)
-    #rm(gtcu)
-
     treelist = PhyloCoalSimulations.simulatecoalescent(net, nsim, 1)
 
     obsCF, t = countquartetsintrees(treelist; showprogressbar=verbose)
-
-    # hybridlambda adds suffix "_1" to each taxon name: remove it
-    #map!(name -> replace(name, r"_1$" => s""), t, t)
 
     taxonlist == t || @error("different order of taxa used by countquartetsintrees (but maybe john's code will help)")
     splittype(s) = (s==[1,1,0,0] || s == [0,0,1,1] ? 0 :
