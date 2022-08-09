@@ -4,10 +4,10 @@ source("/home/john/Documents/projects/code/checkUnits3.R")
 nets = data.frame(sim_num = unique(quartets$sim_num))
 nrow(nets)
 
-sum(quartets$num3blob_col  > 0 & quartets$num4blob_col == 0)
 sum(quartets$num3blob_col  > 0 & quartets$num4blob_col >  0)
-sum(quartets$num3blob_col == 0 & quartets$num4blob_col == 0)
 sum(quartets$num3blob_col == 0 & quartets$num4blob_col >  0)
+sum(quartets$num3blob_col  > 0 & quartets$num4blob_col == 0)
+sum(quartets$num3blob_col == 0 & quartets$num4blob_col == 0)
 
 quartets$A = quartets$num3blob_col  > 0 & quartets$num4blob_col == 0
 
@@ -22,15 +22,15 @@ quartets$n3 = as.integer(quartets$qCF_n * quartets$split3)
 
 View(quartets[quartets$B, c("qCF_n", "n1", "n2", "n3")])
 
-sum(quartets$B & quartets$split1 < 1/3 )
 sum(quartets$B & quartets$split1 >= 1/3)
+sum(quartets$B & quartets$split1 < 1/3 )
 
 quartets$C = quartets$B & quartets$split1 < 1/3
 
 quartets$test1_p = as.numeric(NA)
 quartets$test2_p = as.numeric(NA)
 for (i in 1:nrow(quartets)) {
-  if(quartets$qCF_n[i] > 0 & quartets$split1[i] > -1) {
+  if(quartets$C[i]) {
     # are the two minor concordance factors equal?
     quartets$test1_p[i] = binom.test(x=quartets$n2[i],
                                      n=quartets$n2[i]+quartets$n3[i]
@@ -57,6 +57,7 @@ nets = smoosh(
   aggFun = function(x) max(as.numeric(x)), # or
   newName = 'anyquartet3blob'
 )
+sum(nets$anyquartet3blob)
 
 nets = smoosh(
   fromData = quartets,
@@ -64,8 +65,9 @@ nets = smoosh(
   byColumns = "sim_num",
   toData = nets,
   aggFun = function(x) max(as.numeric(x)), # or
-  newName = 'anyHLproblem'
+  newName = 'noHLproblem'
 )
+sum(nets$noHLproblem)
 
 nets = smoosh(
   fromData = quartets,
@@ -75,6 +77,7 @@ nets = smoosh(
   aggFun = function(x) max(as.numeric(x)), # or
   newName = 'anypathologicalquartet'
 )
+sum(nets$anypathologicalquartet)
 
 nets = smoosh(
   fromData = quartets,
@@ -84,6 +87,7 @@ nets = smoosh(
   aggFun = function(x) max(as.numeric(x)), # or
   newName = 'anytrulypathologicalquartet'
 )
+sum(nets$anytrulypathologicalquartet)
 
 #transform = matrix(c(1/sqrt(3),0,0,-1/sqrt(3),0,0,0,1,0), ncol=3) # "project" simplex in R^3 into R^2
 transform = matrix(c(0,1,0,-1/sqrt(3),0,0,1/sqrt(3),0,0), ncol=3) # "project" simplex in R^3 into R^2
