@@ -1,4 +1,3 @@
-# cecile: do you use a visual studio IDE for julia?
 print("2_extract_quartet_subnetworks.jl" * "\n")
 using PhyloNetworks # master version
 using Random

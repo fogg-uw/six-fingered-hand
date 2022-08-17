@@ -4,16 +4,20 @@ source("/home/john/Documents/projects/code/checkUnits3.R")
 nets = data.frame(sim_num = unique(quartets$sim_num))
 nrow(nets)
 
+# starting with the quartet data, narrow in successively on different categories
+
 sum(quartets$num3blob_col  > 0 & quartets$num4blob_col >  0)
 sum(quartets$num3blob_col == 0 & quartets$num4blob_col >  0)
 sum(quartets$num3blob_col  > 0 & quartets$num4blob_col == 0)
 sum(quartets$num3blob_col == 0 & quartets$num4blob_col == 0)
 
+# A: quartet has 3blob and no 4blob.  analysis is desirable
 quartets$A = quartets$num3blob_col  > 0 & quartets$num4blob_col == 0
 
 sum(quartets$A & quartets$split1 > -1)
 sum(quartets$A & quartets$split1 <= -1)
 
+# B: A is true and we have qCF data.  analysis is possible
 quartets$B = quartets$A & quartets$split1 > -1
 
 quartets$n1 = as.integer(quartets$qCF_n * quartets$split1)
@@ -25,6 +29,8 @@ View(quartets[quartets$B, c("qCF_n", "n1", "n2", "n3")])
 sum(quartets$B & quartets$split1 >= 1/3)
 sum(quartets$B & quartets$split1 < 1/3 )
 
+# C: B is true and observed major qCF is less than 1/3.  analysis finds
+# "anomaly", in a loose sense
 quartets$C = quartets$B & quartets$split1 < 1/3
 
 quartets$test1_p = as.numeric(NA)
@@ -46,6 +52,8 @@ for (i in 1:nrow(quartets)) {
 
 alpha = 0.05
 numtests = sum(quartets$C)
+# D: C is true and population major CF tested to be < 1/3.  analysis finds
+# "anomaly" in a stricter sense
 quartets$D = quartets$C & quartets$test2_p < alpha / numtests
 
 
@@ -170,3 +178,12 @@ y = sapply(list(a,b,c, split_s), FUN=function(x) x[2], simplify=TRUE)
 set.seed(1545 + 6) # current time + millisecond on stopwatch
 good_sample = sample(x=(1:nrow(quartets))[              quartets$B], size=3, replace=F)
 bad_sample  = sample(x=(1:nrow(quartets))[quartets$A & !quartets$B], size=3, replace=F)
+
+# 2022-08-16: trying to investigate a handful of outliers,
+# which are off both the major arm AND its extension
+
+quartets$arm_error = (quartets$split2 - quartets$split3)^2
+summary(quartets$arm_error[quartets$B])
+summary(quartets$arm_error[quartets$B & quartets$sim_num == 1585]) # contains outliers
+test=binom.test(x=1060, n=1060+686, p=0.5, alternative="two.sided", conf.level=0.95) # from sim 1585 quartet 4,5,6,7
+# the p-value of this test is way lower than i expect, even for so many quartets--something else must be going on
