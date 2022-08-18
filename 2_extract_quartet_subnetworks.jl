@@ -3,7 +3,7 @@ using PhyloNetworks # master version
 using Random
 using QuartetNetworkGoodnessFit
 Random.seed!(1718) # current time
-cd("/media/john/Phylo/research/2022-05-18 six-fingered hand")
+cd("/media/john/Phylo/research/2022-05-18 six-fingered hand/six-fingered-hand")
 include("3_find_blobs_and_degree.jl")
 include("find_3blobqCF.jl")
 inputdir = "SiPhyNetwork_output/"
