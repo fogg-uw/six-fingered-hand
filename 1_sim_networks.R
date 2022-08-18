@@ -5,7 +5,7 @@ library(ape)
 
 set.seed(1347) # current time
 #numbsim = 100
-numbsim = 400
+numbsim = 1600
 #age = 2 # number of time units to simulate to... more than 2 can cause trouble
 n = 7 # number of taxa to simulate to
 
