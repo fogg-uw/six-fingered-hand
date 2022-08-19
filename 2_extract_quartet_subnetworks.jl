@@ -1,10 +1,11 @@
 print("2_extract_quartet_subnetworks.jl" * "\n")
+print(pwd())
 using PhyloNetworks # master version
 using Random
 using QuartetNetworkGoodnessFit
 Random.seed!(1718) # current time
-cd("/media/john/Phylo/research/2022-05-18 six-fingered hand/six-fingered-hand")
-include("3_find_blobs_and_degree.jl")
+#cd("/media/john/Phylo/research/2022-05-18 six-fingered hand/six-fingered-hand")
+include("find_blobs_and_degree.jl")
 include("find_3blobqCF.jl")
 inputdir = "SiPhyNetwork_output/"
 #need to loop over trees
@@ -164,8 +165,8 @@ for file in files
 				ns, qCF, hwc, df = quartettype_qCF(quartettree, gt, ngenes; seed=321, verbose=false)
 				#print("  " * string(qCF) * "\n")
 			catch y
-				#print("  encountered error in quartettype_qCF" * "\n")
-				#print(string(y) * "\n")
+				print("  encountered error in quartettype_qCF" * "\n")
+				print(string(y) * "\n")
 			end
 		end
 

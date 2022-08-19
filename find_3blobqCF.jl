@@ -15,8 +15,6 @@ using Random
 using PhyloNetworks # ] add PhyloNetworks#master on 2020-05-20
 using PhyloPlots
 using QuartetNetworkGoodnessFit # to install & use HybridLambda
-#hybridlambda = QuartetNetworkGoodnessFit.hybridlambda # path to hybrid-lambda simulator, on local machine
-hybridlambda = "/media/john/Phylo/research/2022-05-18 six-fingered hand/hybrid-Lambda-v0.6.2-beta-exec" # path to hybrid-lambda simulator, on local machine
 using HypothesisTests
 pcspath = "/media/john/Phylo/research/2022-06-15 PhyloCoalSimulations/PhyloCoalSimulations.jl/src/PhyloCoalSimulations.jl" # PhyloCoalSimulations, on local machine
 include(pcspath) 
@@ -197,7 +195,9 @@ function quartettype_qCF(net::HybridNetwork, genetreefile::AbstractString,
     nsplits = size(mat,1)
     isnothing(seed) || Random.seed!(seed)
 
+    print("about to try PCS")
     treelist = PhyloCoalSimulations.simulatecoalescent(net, nsim, 1)
+    print("done trying PCS")
 
     obsCF, t = countquartetsintrees(treelist; showprogressbar=verbose)
 

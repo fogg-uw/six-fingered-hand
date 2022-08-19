@@ -1,47 +1,63 @@
+## usage:
+## Rscript 1_sim_networks.R [seed] [nsim] ... [d_0]
+## see below for all required arguments.
+
+args = commandArgs(trailingOnly=TRUE)
+print(args)
+args = as.numeric(args)
+
+seed   = args[1] # random seed
+nsim   = args[2] # number of networks to simulate
+ntaxa  = args[3] # for each simulation, stop when there are this many extant taxa
+lambda = args[4] # speciation rate, in CUs
+mu     = args[5] # extinction rate, in CUs
+nu     = args[6] # hybridization rate, in CUs
+M      = args[7] # proportion of hybridizations that are lineage generative 
+Y      = args[8] # proportion of hybridizations that are lineage degenerative
+d_0    = args[9] # lineages cannot hybridize if further apart than d_0
+
+###
+
 library(tictoc)
 library(SiPhyNetwork)
 library(ape)
 
 ###
 
-set.seed(1426) # current time
-#numbsim = 100
-numbsim = 1600
-#age = 2 # number of time units to simulate to... more than 2 can cause trouble
-n = 7 # number of taxa to simulate to
-
-###
+hybrid_proportions <-c(  M,      ##Lineage Generative
+                           Y,    ##Lineage Degenerative
+                        -M-Y+1 ) ##Lineage Neutral
+ 
+hybrid_success_prob <- make.stepwise(
+  probs     = c(  1,   0),
+  distances = c(d_0, Inf)
+)
 
 inheritance.fxn <- make.beta.draw(1,1) # beta(1,1) distribution (i.e. unif(0,1))
-hybrid_proportions <-c(0,  ##Lineage Generative
-                       1, ##Lineage Degenerative
-                       0) ##Lineage Neutral
-#f3<-make.stepwise(probs = c(1,0),distances = c(0.03125/2,Inf))
 
 tic("starting ssa_nets")
 ssa_nets <- sim.bdh.taxa.ssa(
-  #age = age,
-  n = n,
-  numbsim = numbsim,
-  lambda=0.03125, # speciation rate
-  mu=0, # extinction rate
-  nu=0.00625, # hybridization rate,
-  hybprops = hybrid_proportions,
+  n             = ntaxa,
+  numbsim       = nsim,
+  lambda        = lambda,
+  mu            = mu,
+  nu            = nu,
+  hybprops      = hybrid_proportions,
   hyb.inher.fxn = inheritance.fxn,
-  complete=FALSE
+  complete      = FALSE # do not return extinct taxa
 )
-toc("finished ssa_nets")
-#plot(ssa_nets[[9]]) # oh goodness
-#for numbsim=1, age=2, age=4 happen "fast" (before i can hit stopwatch)
-#age=8 takes more than 60sec
-#took more than 60s for age=20, numbsim=1
+toc()
 
 outputdir = "SiPhyNetwork_output"
-unlink(outputdir, recursive=TRUE)
+unlink(outputdir, recursive=TRUE) # delete all existing output!
 dir.create(outputdir)
-for(i in 1:numbsim) {
-  file = paste0('sim', i, '.tree')
+NL = nchar(as.character(nsim))
+for(i in 1:nsim) {
+  j = as.character(i)
+  while(nchar(j) < NL) {
+    j = paste0(0, j)
+  }
+  file = paste0('sim', j, '.tree')
   file = file.path(outputdir, file)
-  try(write.net(ssa_nets[[i]],file = file))
-  #try(ape::write.evonet(ssa_nets[[i]],file = file))
+  try(write.net(ssa_nets[[i]], file = file), TRUE)
 }
