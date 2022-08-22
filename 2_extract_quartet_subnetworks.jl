@@ -52,70 +52,13 @@ for file in files
 		print("fewer than 4 taxa, no quartets exist\n")
 		continue
 	end
-
-	"""
-	# add weights to all hybrid edges (here, just 1/2)
-	# jf 2022-06-10: unnecessary now that SiPhyNetwork::write.net is working and ape::write.evonet is not used in 1_sim_networks.R
-	# jf 2022-06-10: but i'll still do it to see if i can make hybridlambda's parser happy.
-	# jf 2022-06-14: or maybe not.  that doesn't seem to be the problem.
-	for node in tree.node
-		if node.hybrid
-			global g1 = (1/2) # + (rand(Float16)/2) # major hybrid weight
-			global g2 = 1-g1
-			#print(string(node.number) * '\n')
-			#print("g1 = " * string(g1) * '\n')
-			#print("g2 = " * string(g2) * '\n')
-			for edge in node.edge
-				if (edge.isChild1 && edge.node[1] == node) || (!edge.isChild1 && edge.node[2] == node)
-					if edge.isMajor
-						edge.gamma = g1
-					else
-						edge.gamma = g2
-					end
-					
-				end
-			end
-		end
-	end
-	"""
-
-	"""
-	# try to ultrametrize the network
-	# jf 2022-06-06: with SiPhyNetwork and 1_sim_networks.R as currently written, everything seems to come out ultrametric, in which case this step adds unnecessary time
-	
-	# first, see if it is altready ultrametric
-	ultrametric1 = QuartetNetworkGoodnessFit.ultrametrize!(tree, false)
-
-	# if not, set leaf edges to length -1 so QuartetNetworkGoodnessFit knows to stretch/compress these edges to get ultrametricity
-	ultrametric2 = ultrametric1
-	if !ultrametric1
-		for e in tree.edge
-			if PhyloNetworks.getChild(e).leaf
-				e.length = -1.0
-			end
-		end
-		ultrametric2 = QuartetNetworkGoodnessFit.ultrametrize!(tree, false)
-	end
-
-	if ultrametric1
-		#print("network is ultrametric" * "\n")
-	elseif ultrametric2
-		#print("network not ultrametric, but was made so by stretching tips" * "\n")
-	else
-		#print("network not ultrametric and could not be made so by stretching tips; skipping" * "\n")
-		continue
-	end
-	"""
 	
 	quartets = collect(combinations(1:numTaxa,4))
 	for quartet in quartets
 		m = match(r"sim(\d+)\.tree", file)
-		#print(m.captures[1] * '\n')
-		#print(string(parse(Int16, m.captures[1])) * '\n')
 		push!(sim_num, parse(Int16, m.captures[1]))
 		global numquartet += 1
 		push!(quartet_num, string(quartet))
-		#print(" " * string(quartet) * "\n")
 
 		quartet_taxa = taxa[quartet]
 		notquartet_taxa = setdiff(taxa, quartet_taxa)
@@ -123,6 +66,7 @@ for file in files
 		for pruneit in notquartet_taxa
 			deleteleaf!(quartettree, pruneit, simplify=false, nofuse=false)
 		end
+		deleteaboveLSA!(quartettree)
 		
 		quartet_blob_degree = blob_degree(quartettree)
 
@@ -142,10 +86,6 @@ for file in files
 		push!(num3blob_col, quartet_num3blob)
 		push!(num4blob_col, quartet_num4blob)
 		
-		#print(" quartet " * string(quartet) * "\n")
-		#print("  quartet_num4blob=" * string(quartet_num4blob) * "\n")
-		#print("  quartet_num3blob=" * string(quartet_num3blob) * "\n")
-		
 		ngenes = -1
 		qCF = [-1,-1,-1]
 
@@ -163,7 +103,6 @@ for file in files
 			gt = joinpath(outputdir, "d3blob"); # this file will be created then deleted
 			try
 				ns, qCF, hwc, df = quartettype_qCF(quartettree, gt, ngenes; seed=321, verbose=false)
-				#print("  " * string(qCF) * "\n")
 			catch y
 				print("  encountered error in quartettype_qCF" * "\n")
 				print(string(y) * "\n")
@@ -181,9 +120,6 @@ for file in files
 			push!(subnetworks, quartettree)
 		end
 	end
-	#print("numquartet " * string(numquartet) * "\n")
-	#print("num4blob=" * string(num4blob) * "\n")
-	#print("num3blob=" * string(num3blob) * "\n")
 	if file == files[1]
 		global sim_subnetworks = [subnetworks]
 	else
