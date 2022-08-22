@@ -3,7 +3,7 @@ using PhyloNetworks # master version
 using Random
 using QuartetNetworkGoodnessFit
 Random.seed!(1718) # current time
-cd("/media/john/Phylo/research/2022-05-18 six-fingered hand")
+cd("/media/john/Phylo/research/2022-05-18 six-fingered hand/six-fingered-hand")
 include("3_find_blobs_and_degree.jl")
 include("find_3blobqCF.jl")
 inputdir = "SiPhyNetwork_output/"
@@ -12,13 +12,21 @@ files = readdir(inputdir)
 files = filter(x -> occursin(r"sim\d+\.tree", x), files)
 
 global numquartet = 0
+global num2cycle = 0
+global num2blob = 0
 global num3blob = 0
 global num4blob = 0
+global num5blob = 0
+global num6blob = 0
 
 global sim_num = Int16[]
 global quartet_num = String[]
+global num2cycle_col = Int16[]
+global num2blob_col = Int16[]
 global num3blob_col = Int16[]
 global num4blob_col = Int16[]
+global num5blob_col = Int16[]
+global num6blob_col = Int16[]
 global qCF_n = Int16[]
 global split1 = Float16[]
 global split2 = Float16[]
@@ -51,60 +59,6 @@ for file in files
 		print("fewer than 4 taxa, no quartets exist\n")
 		continue
 	end
-
-	"""
-	# add weights to all hybrid edges (here, just 1/2)
-	# jf 2022-06-10: unnecessary now that SiPhyNetwork::write.net is working and ape::write.evonet is not used in 1_sim_networks.R
-	# jf 2022-06-10: but i'll still do it to see if i can make hybridlambda's parser happy.
-	# jf 2022-06-14: or maybe not.  that doesn't seem to be the problem.
-	for node in tree.node
-		if node.hybrid
-			global g1 = (1/2) # + (rand(Float16)/2) # major hybrid weight
-			global g2 = 1-g1
-			#print(string(node.number) * '\n')
-			#print("g1 = " * string(g1) * '\n')
-			#print("g2 = " * string(g2) * '\n')
-			for edge in node.edge
-				if (edge.isChild1 && edge.node[1] == node) || (!edge.isChild1 && edge.node[2] == node)
-					if edge.isMajor
-						edge.gamma = g1
-					else
-						edge.gamma = g2
-					end
-					
-				end
-			end
-		end
-	end
-	"""
-
-	"""
-	# try to ultrametrize the network
-	# jf 2022-06-06: with SiPhyNetwork and 1_sim_networks.R as currently written, everything seems to come out ultrametric, in which case this step adds unnecessary time
-	
-	# first, see if it is altready ultrametric
-	ultrametric1 = QuartetNetworkGoodnessFit.ultrametrize!(tree, false)
-
-	# if not, set leaf edges to length -1 so QuartetNetworkGoodnessFit knows to stretch/compress these edges to get ultrametricity
-	ultrametric2 = ultrametric1
-	if !ultrametric1
-		for e in tree.edge
-			if PhyloNetworks.getChild(e).leaf
-				e.length = -1.0
-			end
-		end
-		ultrametric2 = QuartetNetworkGoodnessFit.ultrametrize!(tree, false)
-	end
-
-	if ultrametric1
-		#print("network is ultrametric" * "\n")
-	elseif ultrametric2
-		#print("network not ultrametric, but was made so by stretching tips" * "\n")
-	else
-		#print("network not ultrametric and could not be made so by stretching tips; skipping" * "\n")
-		continue
-	end
-	"""
 	
 	quartets = collect(combinations(1:numTaxa,4))
 	for quartet in quartets
@@ -122,24 +76,49 @@ for file in files
 		for pruneit in notquartet_taxa
 			deleteleaf!(quartettree, pruneit, simplify=false, nofuse=false)
 		end
+		deleteaboveLSA!(quartettree)
 		
 		quartet_blob_degree = blob_degree(quartettree)
 
-		global quartet_num4blob = 0
+		global quartet_num2cycle = 0
+		global quartet_num2blob = 0
 		global quartet_num3blob = 0
+		global quartet_num4blob = 0
+		global quartet_num5blob = 0
+		global quartet_num6blob = 0
+
+		for blob in biconnectedComponents(quartettree)
+			if length(blob)==2
+				quartet_num2cycle += 1
+				global num2cycle += 1
+			end
+		end
+		
 		for degree in quartet_blob_degree[2]
-			if degree == 3
+			if degree == 2
+				quartet_num2blob += 1
+				global num2blob += 1
+			elseif degree == 3
 				quartet_num3blob += 1
 				global num3blob += 1
-			end
-			if degree == 4
+			elseif degree == 4
 				quartet_num4blob += 1
 				global num4blob += 1
+			elseif degree == 5
+				quartet_num5blob += 1
+				global num5blob += 1
+			elseif degree == 6
+				quartet_num6blob += 1
+				global num6blob += 1
 			end
 		end
 
+		push!(num2cycle_col, quartet_num2cycle)
+		push!(num2blob_col, quartet_num2blob)
 		push!(num3blob_col, quartet_num3blob)
 		push!(num4blob_col, quartet_num4blob)
+		push!(num5blob_col, quartet_num5blob)
+		push!(num6blob_col, quartet_num6blob)
 		
 		#print(" quartet " * string(quartet) * "\n")
 		#print("  quartet_num4blob=" * string(quartet_num4blob) * "\n")
@@ -194,8 +173,12 @@ using DataFrames
 df = DataFrame(
 	sim_num=sim_num,
 	quartet_num=quartet_num,
+	num2cycle_col=num2cycle_col,
+	num2blob_col=num2blob_col,
 	num3blob_col=num3blob_col,
 	num4blob_col=num4blob_col,
+	num5blob_col=num5blob_col,
+	num6blob_col=num6blob_col,
 	qCF_n=qCF_n,
 	split1=split1,
 	split2=split2,

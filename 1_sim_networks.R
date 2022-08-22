@@ -4,8 +4,7 @@ library(ape)
 ###
 
 set.seed(1347) # current time
-#numbsim = 100
-numbsim = 1600
+nsim = 1600
 #age = 2 # number of time units to simulate to... more than 2 can cause trouble
 n = 7 # number of taxa to simulate to
 
@@ -18,7 +17,7 @@ hybrid_proportions <-c(0.5,  ##Lineage Generative
 ssa_nets <- sim.bdh.taxa.ssa(
   #age = age,
   n = 7,
-  numbsim = numbsim,
+  numbsim = nsim,
   lambda=1, # speciation rate
   mu=0.2, # extinction rate
   nu=0.25, # hybridization rate,
@@ -34,9 +33,13 @@ ssa_nets <- sim.bdh.taxa.ssa(
 outputdir = "SiPhyNetwork_output"
 unlink(outputdir, recursive=TRUE)
 dir.create(outputdir)
-for(i in 1:numbsim) {
-  file = paste0('sim', i, '.tree')
+NL = nchar(as.character(nsim))
+for(i in 1:nsim) {
+  j = as.character(i)
+  while(nchar(j) < NL) {
+    j = paste0(0, j)
+  }
+  file = paste0('sim', j, '.tree')
   file = file.path(outputdir, file)
-  try(write.net(ssa_nets[[i]],file = file))
-  #try(ape::write.evonet(ssa_nets[[i]],file = file))
+  try(write.net(ssa_nets[[i]], file = file), TRUE)
 }

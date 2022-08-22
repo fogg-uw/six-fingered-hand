@@ -1,4 +1,4 @@
-setwd("/media/john/Phylo/research/2022-05-18 six-fingered hand")
+setwd("/media/john/Phylo/research/2022-05-18 six-fingered hand/six-fingered-hand")
 quartets = read.csv("quartets.csv")
 source("/home/john/Documents/projects/code/checkUnits3.R")
 nets = data.frame(sim_num = unique(quartets$sim_num))
@@ -10,6 +10,8 @@ sum(quartets$num3blob_col  > 0 & quartets$num4blob_col >  0)
 sum(quartets$num3blob_col == 0 & quartets$num4blob_col >  0)
 sum(quartets$num3blob_col  > 0 & quartets$num4blob_col == 0)
 sum(quartets$num3blob_col == 0 & quartets$num4blob_col == 0)
+sum(quartets$num2cycle_col > 0)
+sum(quartets$num5blob_col > 0)
 
 # A: quartet has 3blob and no 4blob.  analysis is desirable
 quartets$A = quartets$num3blob_col  > 0 & quartets$num4blob_col == 0
