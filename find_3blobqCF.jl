@@ -12,12 +12,11 @@
 =#
 
 using Random
-using PhyloNetworks # ] add PhyloNetworks#master on 2020-05-20
+using PhyloNetworks # ] add PhyloNetworks#master on 2022-05-20
 using PhyloPlots
 using QuartetNetworkGoodnessFit # to install & use HybridLambda
 using HypothesisTests
-pcspath = "/media/john/Phylo/research/2022-06-15 PhyloCoalSimulations/PhyloCoalSimulations.jl/src/PhyloCoalSimulations.jl" # PhyloCoalSimulations, on local machine
-include(pcspath) 
+using PhyloCoalSimulations
 
 """
     quartettype_qCF(net, genetreefile, nsim=200; seed=nothing, verbose=true)
