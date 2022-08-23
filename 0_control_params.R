@@ -11,9 +11,9 @@ nnet   =  800               # number of networks per scenario
 ntaxa  =  c(5, 7)           # number of taxa per network
 lambda =  c(0.1, 0.3, 1, 3) # speciation rate, in CUs
 mu     =  c(0.1, 0.9)       # extinction rate, as a % of lambda
-nu     =    0.5             # hybridization rate, as as % of lambda
+nu     =  c(0.2, 0.5)       # hybridization rate, as as % of lambda
 M      =  c(0.5, 0.25)      # % lineage generative hybridizations.  Y always 0.25, H picks up the slack
-d_0    =    0.5             # forbid hybridizations between lineages more than this % of lambda away
+d_0    =  c(0.1, 0.3, 0.6)  # forbid hybridizations between lineages more than this % of 1/lambda away
 ngt    =  800               # number of gene trees per quartet
 julia = "/home/john/julia-1.7.3/bin/julia"
 
@@ -45,7 +45,7 @@ scenarios = expand.grid(seed=seed,
 
 scenarios$mu  = scenarios$mu  * scenarios$lambda # convert to CUs
 scenarios$nu  = scenarios$nu  * scenarios$lambda
-scenarios$d_0 = scenarios$d_0 * scenarios$lambda
+scenarios$d_0 = scenarios$d_0 / scenarios$lambda
 
 scenarios$seed = scenarios$seed + 1:nrow(scenarios)
 
