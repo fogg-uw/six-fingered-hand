@@ -4,4 +4,4 @@
 
 pipeline: put everything in one folder.  open file #0.  set parameters as you wish.  run file #0 from command line:
 
-Rscript 0_control_params.R
+``Rscript 0_control_params.R``
