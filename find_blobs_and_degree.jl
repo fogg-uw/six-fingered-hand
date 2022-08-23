@@ -1,6 +1,10 @@
 using PhyloNetworks
 
-# given a network "net"
+# given a network "net",
+# find the degree (number of outgoing cut edges) of each blob in net 
+# by counting A = number of edges in the blob and
+# B = number of edges adjacent to some node in the blob.
+# degree = B - A.
 
 function blob_degree(net::HybridNetwork)
 

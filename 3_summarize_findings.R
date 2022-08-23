@@ -1,5 +1,7 @@
+cat("3_summarize_findings.R\n")
+
 args = commandArgs(trailingOnly=TRUE)
-print(args)
+#print(args)
 args = as.numeric(args)
 
 summarize_findings = function(args) {
@@ -61,15 +63,16 @@ numtests = sum(quartets$C)
 quartets$D = quartets$C & quartets$test2_p < alpha / numtests
 
 table_to_write = data.frame(
-  seed   = args[1], # random seed
-  nsim   = args[2], # number of networks to simulate
-  ntaxa  = args[3], # for each simulation, stop when there are this many extant taxa
-  lambda = args[4], # speciation rate, in CUs
-  mu     = args[5], # extinction rate, in CUs
-  nu     = args[6], # hybridization rate, in CUs
-  M      = args[7], # proportion of hybridizations that are lineage generative 
-  Y      = args[8], # proportion of hybridizations that are lineage degenerative
-  d_0    = args[9], # in [0,1]: lineages cannot hybridize if further apart than d_0 * lambda 
+  seed   = args[01], # random seed
+  nsim   = args[02], # number of networks to simulate
+  ntaxa  = args[03], # for each simulation, stop when there are this many extant taxa
+  lambda = args[04], # speciation rate, in CUs
+  mu     = args[05], # extinction rate, in CUs
+  nu     = args[06], # hybridization rate, in CUs
+  M      = args[07], # proportion of hybridizations that are lineage generative 
+  Y      = args[08], # proportion of hybridizations that are lineage degenerative
+  d_0    = args[09], # in [0,1]: lineages cannot hybridize if further apart than d_0 * lambda 
+  ngt    = args[10], # number of gene trees for phylocoalsims
   q = nrow(quartets),
   A = sum(quartets$A),
   B = sum(quartets$B),

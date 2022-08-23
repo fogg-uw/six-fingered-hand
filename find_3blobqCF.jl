@@ -13,13 +13,13 @@
 
 using Random
 using PhyloNetworks # ] add PhyloNetworks#master on 2022-05-20
-using PhyloPlots
-using QuartetNetworkGoodnessFit # to install & use HybridLambda
-using HypothesisTests
+#using PhyloPlots
+#using QuartetNetworkGoodnessFit # to install & use HybridLambda
+#using HypothesisTests
 using PhyloCoalSimulations
 
 """
-    quartettype_qCF(net, genetreefile, nsim=200; seed=nothing, verbose=true)
+    quartettype_qCF(net, nsim=200; seed=nothing, verbose=true)
 
 Calculate the quartet type of quartet concordance factors (CFs) of a
 4-taxon network. The quartet type is described by a matrix with 1 row
@@ -151,7 +151,7 @@ julia> pvalue(BinomialTest(n_cf2, n_cf2 + n_minor), tail=:left) # also with CF2 
 1.0
 ```
 """
-function quartettype_qCF(net::HybridNetwork, genetreefile::AbstractString,
+function quartettype_qCF(net::HybridNetwork, 
         nsim=200; seed=nothing, verbose=true)
 
     """
@@ -194,9 +194,9 @@ function quartettype_qCF(net::HybridNetwork, genetreefile::AbstractString,
     nsplits = size(mat,1)
     isnothing(seed) || Random.seed!(seed)
 
-    print("about to try PCS")
+    #print("about to try PCS")
     treelist = PhyloCoalSimulations.simulatecoalescent(net, nsim, 1)
-    print("done trying PCS")
+    #print("done trying PCS")
 
     obsCF, t = countquartetsintrees(treelist; showprogressbar=verbose)
 

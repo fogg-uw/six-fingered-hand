@@ -1,20 +1,27 @@
+# usage: julia 2_extract_quartet_subnetworks.jl [ngt]
+# ngt is the number of gene trees for PCS to simulate per quartet network.
+
 print("2_extract_quartet_subnetworks.jl" * "\n")
-print(pwd())
+#print(pwd())
 using PhyloNetworks # master version
-using Random
-using QuartetNetworkGoodnessFit
-Random.seed!(1718) # current time
-#cd("/media/john/Phylo/research/2022-05-18 six-fingered hand/six-fingered-hand")
+#cd("/media/john/Phylo/research/2022-05-18 six-fingered hand/vary_params/six-fingered-hand")
 include("find_blobs_and_degree.jl")
 include("find_3blobqCF.jl")
+ngt = parse(Int64, ARGS[1])
 inputdir = "SiPhyNetwork_output/"
 #need to loop over trees
 files = readdir(inputdir)
 files = filter(x -> occursin(r"sim\d+\.tree", x), files)
 
+#scalar variables (updated as we loop through trees; mostly for debugging)
+
 global numquartet = 0
 global num3blob = 0
 global num4blob = 0
+global readTopologySuccess = 0
+global readTopologyFail = 0
+
+#vector variables (record new entries as we loop through trees/networks; export at end)
 
 global sim_num = Int16[]
 global quartet_num = String[]
@@ -25,13 +32,12 @@ global split1 = Float16[]
 global split2 = Float16[]
 global split3 = Float16[]
 
-global readTopologySuccess = 0
-global readTopologyFail = 0
+# this last is for debugging.
 
 global readTopologyFailures = String[]
 
 for file in files
-	print(file * '\n')
+	#print(file * '\n')
 
 	try
 		global tree = readTopology(joinpath(inputdir, file))
@@ -97,12 +103,9 @@ for file in files
 			nothing
 		elseif quartet_num3blob > 0
 			#print("   6. if there is a 3-degree blob (therefore no 4-degree blob), then:")
-			ngenes=3200
-			outputdir = "hl_output";
-			ispath(outputdir) || mkdir(outputdir);
-			gt = joinpath(outputdir, "d3blob"); # this file will be created then deleted
+			ngenes=ngt
 			try
-				ns, qCF, hwc, df = quartettype_qCF(quartettree, gt, ngenes; seed=321, verbose=false)
+				ns, qCF, hwc, df = quartettype_qCF(quartettree, ngenes; seed=321, verbose=false)
 			catch y
 				print("  encountered error in quartettype_qCF" * "\n")
 				print(string(y) * "\n")
@@ -113,17 +116,6 @@ for file in files
 		push!(split1, qCF[1])
 		push!(split2, qCF[2])
 		push!(split3, qCF[3])
-
-		if quartet == quartets[1]
-			global subnetworks = [quartettree]
-		else
-			push!(subnetworks, quartettree)
-		end
-	end
-	if file == files[1]
-		global sim_subnetworks = [subnetworks]
-	else
-		push!(sim_subnetworks, subnetworks)
 	end
 end
 
