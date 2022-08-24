@@ -1,8 +1,8 @@
 # usage:
-# change the 9 sets of parameters below and set the local julia path (sorry).
+# change the 9 sets of parameters below and set the local julia and R paths (sorry).
 # then run from console with:
 
-#    Rscript 0_control_params.R
+#    [Rscript path] 0_control_params.R
 
 # output is "results.csv".
 
@@ -15,7 +15,9 @@ nu     =  c(0.2, 0.5)       # hybridization rate, as as % of lambda
 M      =  c(0.5, 0.25)      # % lineage generative hybridizations.  Y always 0.25, H picks up the slack
 d_0    =  c(0.1, 0.3, 0.6)  # forbid hybridizations between lineages more than this % of 1/lambda away
 ngt    =  800               # number of gene trees per quartet
-julia = "/home/john/julia-1.7.3/bin/julia"
+
+julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
+R      = "/u/f/o/fogg/R-4.2.1/bin/Rscript"
 
 # R will expand.grid the 9 parameter sets and ask SiPhyNetworks to simulate
 # under every combination thereof ("scenario"), then pass the simulated networks to other
@@ -59,9 +61,9 @@ try(system("rm results.csv"), TRUE)
 
 for(i in 1:nrow(scenarios)) {
   
-  command1 = "Rscript 1_sim_networks.R"
+  command1 = paste(R,     "1_sim_networks.R",                 sep=" ")
   command2 = paste(julia, "2_extract_quartet_subnetworks.jl", sep=" ")
-  command3 = "Rscript 3_summarize_findings.R"
+  command3 = paste(R,     "3_summarize_findings.R",           sep=" ")
   
   # parameters for siphynetwork
   params1 = scenarios[i, 1:9]
