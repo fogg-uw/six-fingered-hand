@@ -122,8 +122,7 @@ serial_job = function(i) {
   
 }
 
-#numCores = detectCores()
-numCores = 2
+numCores = detectCores()-1 #let's not be greedy
 results_parallel = mclapply(X=1:nrow(scenarios), FUN=parallel_job, mc.cores = numCores)
 results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job                     )
 
