@@ -144,3 +144,5 @@ results = results_serial[[1]]
 for(i in 2:length(results_serial)) {
   results = rbind(results, results_serial[[i]])
 }
+
+write.csv(results, "results.csv", append=FALSE)
