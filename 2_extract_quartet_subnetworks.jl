@@ -119,6 +119,9 @@ for file in files
 	end
 end
 
+# remove SiPhyNetwork_output
+rm("SiPhyNetwork_output", recursive=TRUE)
+
 using DataFrames
 df = DataFrame(
 	sim_num=sim_num,

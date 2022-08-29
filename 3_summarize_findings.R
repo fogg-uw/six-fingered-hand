@@ -5,7 +5,6 @@ args = commandArgs(trailingOnly=TRUE)
 args = as.numeric(args)
 
 summarize_findings = function(args) {
-#setwd("/media/john/Phylo/research/2022-05-18 six-fingered hand")
 quartets = read.csv("quartets.csv")
 nets = data.frame(sim_num = unique(quartets$sim_num))
 nrow(nets)
@@ -79,14 +78,9 @@ table_to_write = data.frame(
   C = sum(quartets$C),
   D = sum(quartets$D)
 )
-write.col.names.YN = !("results.csv" %in% dir())
-write.table(
-  x=table_to_write,
-  file="results.csv",
-  append=TRUE,
-  sep=",",
-  row.names=F,
-  col.names=write.col.names.YN)
+
+return(table_to_write)
+
 }
 
 summarize_findings(args)

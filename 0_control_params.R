@@ -31,6 +31,7 @@ R      = "Rscript"
 
 ###
 
+library(parallel)
 library(tictoc)
 
 ###
@@ -57,41 +58,61 @@ scenarios = scenarios[,c("seed", "nnet", "ntaxa", "lambda", "mu", "nu", "M", "Y"
 
 ###
 
+startingdir = pwd()
 try(system("rm results.csv"), TRUE)
 
-for(i in 1:nrow(scenarios)) {
+parallel_job = function(i) {
+  
+  jobdir = paste0("job", i)
+  dir.create(jobdir)
+  cd(jobdir)
   
   command1 = paste(R,     "1_sim_networks.R",                 sep=" ")
   command2 = paste(julia, "2_extract_quartet_subnetworks.jl", sep=" ")
-  command3 = paste(R,     "3_summarize_findings.R",           sep=" ")
   
   # parameters for siphynetwork
   params1 = scenarios[i, 1:9]
   params1 = paste(unlist(params1), collapse=" ")
-
+  
   # parameters for phylocoalsimulations
   params2 = scenarios[i, 10]
   params2 = paste(unlist(params2), collapse=" ")
   
-  # parameters for final summary
-  params3 = paste(params1, params2, sep=" ")
-  
-  print(scenarios[i,])
-
   command1 = paste(command1, params1, sep=" ")
   command2 = paste(command2, params2, sep=" ")
+  
+  system(command1)
+  system(command2)
+  
+  cd(startingdir)
+  return(TRUE)
+}
+
+serial_job = function(i) {
+  
+  jobdir = paste0("job", i)
+  cd(jobdir)
+  
+  command3 = paste(R,     "3_summarize_findings.R",           sep=" ")
+  
+  # parameters for final summary
+  params3 = scenarios[i, 1:10]
+  params3 = paste(unlist(params2), collapse=" ")
+  
   command3 = paste(command3, params3, sep=" ")
+  system(command3)
   
-  tic("1_sim_networks.R")
-    system(command1)
-  toc()
+  cd(startingdir)
+  unlink(jobdir, recursive=TRUE)
+  return(TRUE)
   
-  tic("2_extract_quartet_subnetworks.R")
-    system(command2)
-  toc()
-  
-  tic("3_summarize_findings.R")
-    system(command3)
-  toc()
-  
+}
+
+numCores = detectCores()
+results_parallel = mclapply(X=1:nrow(scenarios), FUN=parallel_job, mc.cores = numCores)
+results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job                     )
+
+results = results_serial[[1]]
+for(i in 2:length(results_serial)) {
+  results = rbind(results, results_serial[[i]])
 }
