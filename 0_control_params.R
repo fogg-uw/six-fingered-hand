@@ -6,7 +6,7 @@
 
 # output is "results.csv".
 
-seed   = 1440               # i like to do current time
+seed   =  1440 + 1:3        # i like to do current time.  what you add is nreps
 nnet   =  800               # number of networks per scenario
 ntaxa  =  c(5, 7)           # number of taxa per network
 lambda =  c(0.1, 0.3, 1, 3) # speciation rate, in CUs
@@ -52,7 +52,7 @@ scenarios$mu  = scenarios$mu  * scenarios$lambda # convert to CUs
 scenarios$nu  = scenarios$nu  * scenarios$lambda
 scenarios$d_0 = scenarios$d_0 / scenarios$lambda
 
-scenarios$seed = scenarios$seed + 1:nrow(scenarios)
+scenarios$seed = min(scenarios$seed) - 1 + 1:nrow(scenarios)
 
 scenarios$Y = 0.25
 
