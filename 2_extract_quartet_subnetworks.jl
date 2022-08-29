@@ -120,6 +120,10 @@ for file in files
 end
 
 # remove SiPhyNetwork_output
+files = readdir(inputdir)
+for file in files
+	rm(joinpath(inputdir, file))
+end
 rm(inputdir, recursive=true)
 
 using DataFrames
