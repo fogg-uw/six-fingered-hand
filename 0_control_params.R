@@ -99,11 +99,11 @@ serial_job = function(i) {
   
   source(script3)
   
-  cat(startingdir)
+  #cat(startingdir)
   setwd(startingdir)
   jobdir = paste0("job", i)
   setwd(jobdir)
-  cat(jobdir)
+  #cat(jobdir)
   
   #command3 = paste(R,     "3_summarize_findings.R",           sep=" ")
   
