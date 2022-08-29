@@ -17,7 +17,7 @@ d_0    =  c(0.1, 0.3, 0.6)  # forbid hybridizations between lineages more than t
 ngt    =  800               # number of gene trees per quartet
 
 julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
-R      = "/u/f/o/fogg/R-4.2.1/bin/Rscript"
+R      = "Rscript"
 
 # R will expand.grid the 9 parameter sets and ask SiPhyNetworks to simulate
 # under every combination thereof ("scenario"), then pass the simulated networks to other
