@@ -19,6 +19,8 @@ ngt    =  800               # number of gene trees per quartet
 julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
 R      = "Rscript"
 
+#on john's machine: julia = "/home/john/julia-1.7.3/bin/julia"
+
 # R will expand.grid the 9 parameter sets and ask SiPhyNetworks to simulate
 # under every combination thereof ("scenario"), then pass the simulated networks to other
 # julia + R scripts for further analysis.  the output is "results.csv": it has
@@ -65,7 +67,7 @@ parallel_job = function(i) {
   
   jobdir = paste0("job", i)
   dir.create(jobdir)
-  cd(jobdir)
+  setwd(jobdir)
   
   command1 = paste(R,     "1_sim_networks.R",                 sep=" ")
   command2 = paste(julia, "2_extract_quartet_subnetworks.jl", sep=" ")
