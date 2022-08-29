@@ -94,7 +94,7 @@ parallel_job = function(i) {
   system(command2)
   
   cd(startingdir)
-  return(TRUE)
+  return(i)
 }
 
 serial_job = function(i) {
