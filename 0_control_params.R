@@ -63,14 +63,18 @@ scenarios = scenarios[,c("seed", "nnet", "ntaxa", "lambda", "mu", "nu", "M", "Y"
 startingdir = getwd()
 try(system("rm results.csv"), TRUE)
 
+script1 = file.path(startingdir, "1_sim_networks.R")
+script2 = file.path(startingdir, "2_extract_quartet_subnetworks.jl")
+script3 = file.path(startingdir, "3_summarize_findings.R")
+
 parallel_job = function(i) {
   
   jobdir = paste0("job", i)
   dir.create(jobdir)
   setwd(jobdir)
   
-  command1 = paste(R,     "1_sim_networks.R",                 sep=" ")
-  command2 = paste(julia, "2_extract_quartet_subnetworks.jl", sep=" ")
+  command1 = paste(R,     script1, sep=" ")
+  command2 = paste(julia, script2, sep=" ")
   
   # parameters for siphynetwork
   params1 = scenarios[i, 1:9]
@@ -92,8 +96,9 @@ parallel_job = function(i) {
 
 serial_job = function(i) {
   
-  source("3_summarize_findings.R")
+  source(script3)
   
+  cd(startingdir)
   jobdir = paste0("job", i)
   cd(jobdir)
   
