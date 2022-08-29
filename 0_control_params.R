@@ -72,7 +72,7 @@ script3 = file.path(startingdir, "3_summarize_findings.R")
 parallel_job = function(i) {
   
   jobdir = paste0("job", i)
-  unlink(jobdir)
+  unlink(jobdir, recursive = TRUE)
   dir.create(jobdir)
   setwd(jobdir)
   
