@@ -58,7 +58,7 @@ scenarios = scenarios[,c("seed", "nnet", "ntaxa", "lambda", "mu", "nu", "M", "Y"
 
 ###
 
-startingdir = pwd()
+startingdir = getwd()
 try(system("rm results.csv"), TRUE)
 
 parallel_job = function(i) {
@@ -90,21 +90,25 @@ parallel_job = function(i) {
 
 serial_job = function(i) {
   
+  source("3_summarize_findings.R")
+  
   jobdir = paste0("job", i)
   cd(jobdir)
   
-  command3 = paste(R,     "3_summarize_findings.R",           sep=" ")
+  #command3 = paste(R,     "3_summarize_findings.R",           sep=" ")
   
   # parameters for final summary
   params3 = scenarios[i, 1:10]
-  params3 = paste(unlist(params2), collapse=" ")
+  #params3 = paste(unlist(params2), collapse=" ")
+  params3 = as.numeric(params3)
   
-  command3 = paste(command3, params3, sep=" ")
-  system(command3)
+  #command3 = paste(command3, params3, sep=" ")
+  #system(command3)
+  table_to_write = summarize_findings(params3)
   
   cd(startingdir)
   unlink(jobdir, recursive=TRUE)
-  return(TRUE)
+  return(table_to_write)
   
 }
 
