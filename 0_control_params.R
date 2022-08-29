@@ -93,7 +93,7 @@ parallel_job = function(i) {
   system(command1)
   system(command2)
   
-  cd(startingdir)
+  setwd(startingdir)
   return(i)
 }
 
@@ -101,9 +101,9 @@ serial_job = function(i) {
   
   source(script3)
   
-  cd(startingdir)
+  setwd(startingdir)
   jobdir = paste0("job", i)
-  cd(jobdir)
+  setwd(jobdir)
   
   #command3 = paste(R,     "3_summarize_findings.R",           sep=" ")
   
@@ -116,7 +116,7 @@ serial_job = function(i) {
   #system(command3)
   table_to_write = summarize_findings(params3)
   
-  cd(startingdir)
+  setwd(startingdir)
   unlink(jobdir, recursive=TRUE)
   return(table_to_write)
   
