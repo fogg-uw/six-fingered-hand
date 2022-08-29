@@ -120,7 +120,7 @@ for file in files
 end
 
 # remove SiPhyNetwork_output
-rm("SiPhyNetwork_output", recursive=true)
+rm(inputdir, recursive=true)
 
 using DataFrames
 df = DataFrame(
