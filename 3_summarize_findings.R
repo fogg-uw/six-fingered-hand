@@ -1,8 +1,8 @@
-cat("3_summarize_findings.R\n")
+#cat("3_summarize_findings.R\n")
 
-args = commandArgs(trailingOnly=TRUE)
+#args = commandArgs(trailingOnly=TRUE)
 #print(args)
-args = as.numeric(args)
+#args = as.numeric(args)
 
 summarize_findings = function(args) {
 quartets = read.csv("quartets.csv")
@@ -83,4 +83,4 @@ return(table_to_write)
 
 }
 
-summarize_findings(args)
+#summarize_findings(args)
