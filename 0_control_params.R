@@ -72,7 +72,7 @@ script3 = file.path(startingdir, "3_summarize_findings.R")
 parallel_job = function(i) {
   
   jobdir = paste0("job", i)
-  cat(paste0(jobdir, '\n'))
+  cat(paste('start', jobdir, '\n'))
   unlink(jobdir, recursive = TRUE)
   dir.create(jobdir)
   setwd(jobdir)
@@ -99,6 +99,7 @@ parallel_job = function(i) {
   system(command2)
   
   setwd(startingdir)
+  cat('finish', jobdir, '\n')
   return(i)
 }
 

@@ -2,7 +2,7 @@
 ## Rscript 1_sim_networks.R [seed] [nnet] ... [d_0]
 ## see below for all required arguments.
 
-cat("1_sim_networks.R\n")
+#cat("1_sim_networks.R\n")
 args = commandArgs(trailingOnly=TRUE)
 #print(args)
 args = as.numeric(args)
