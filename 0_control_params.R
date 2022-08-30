@@ -122,7 +122,7 @@ serial_job = function(i) {
   
   #command3 = paste(command3, params3, sep=" ")
   #system(command3)
-  table_to_write = summarize_findings(params3)
+  try(table_to_write = summarize_findings(params3))
   
   setwd(startingdir)
   unlink(jobdir, recursive=TRUE)
@@ -138,7 +138,7 @@ results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job               
 
 results = results_serial[[1]]
 for(i in 2:length(results_serial)) {
-  results = rbind(results, results_serial[[i]])
+  try(results = rbind(results, results_serial[[i]]))
 }
 
 write.csv(results, "results.csv")
