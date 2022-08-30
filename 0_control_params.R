@@ -7,14 +7,14 @@
 # output is "results.csv".
 
 seed   =  1440 + 1:2        # i like to do current time.  what you add is nreps
-nnet   =  600               # number of networks per scenario
+nnet   =  400               # number of networks per scenario
 ntaxa  =  c(4, 6)           # number of taxa per network
 lambda =  c(0.1, 0.3, 1, 3) # speciation rate, in CUs
 mu     =  c(0.1, 0.9)       # extinction rate, as a % of lambda
 nu     =  c(0.1, 0.9)       # hybridization rate, as as % of lambda
 MHY    =  c("M", "H", "Y")  # type of hybridization that is dominant
 d_0    =  c(1/4, 4)         # forbid hybridizations between lineages more than this % of 1/lambda away
-ngt    =  600               # number of gene trees per quartet
+ngt    =  400               # number of gene trees per quartet
 
 julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
 R      = "Rscript"
