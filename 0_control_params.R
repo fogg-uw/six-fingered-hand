@@ -126,7 +126,7 @@ serial_job = function(i) {
   
   #command3 = paste(command3, params3, sep=" ")
   #system(command3)
-  try(table_to_write = summarize_findings(params3))
+  table_to_write = summarize_findings(params3)
   
   setwd(startingdir)
   unlink(jobdir, recursive=TRUE)
