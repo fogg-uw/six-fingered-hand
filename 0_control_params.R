@@ -8,12 +8,12 @@
 
 seed   =  1440 + 1:3        # i like to do current time.  what you add is nreps
 nnet   =  800               # number of networks per scenario
-ntaxa  =  c(5, 7)           # number of taxa per network
+ntaxa  =  c(4, 8)           # number of taxa per network
 lambda =  c(0.1, 0.3, 1, 3) # speciation rate, in CUs
 mu     =  c(0.1, 0.9)       # extinction rate, as a % of lambda
-nu     =  c(0.2, 0.5)       # hybridization rate, as as % of lambda
-M      =  c(0.5, 0.25)      # % lineage generative hybridizations.  Y always 0.25, H picks up the slack
-d_0    =  c(0.1, 0.3, 0.6)  # forbid hybridizations between lineages more than this % of 1/lambda away
+nu     =  c(0.1, 0.9)       # hybridization rate, as as % of lambda
+MHY    =  c("M", "H", "Y")  # type of hybridization that is dominant
+d_0    =  c(1/4, 4)         # forbid hybridizations between lineages more than this % of 1/lambda away
 ngt    =  800               # number of gene trees per quartet
 
 julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
@@ -44,7 +44,7 @@ scenarios = expand.grid(seed=seed,
                         lambda=lambda,
                         mu=mu,
                         nu=nu,
-                        M=M, 
+                        MHY=MHY, 
                         d_0=d_0,
                         ngt=ngt)
 
@@ -54,7 +54,8 @@ scenarios$d_0 = scenarios$d_0 / scenarios$lambda
 
 scenarios$seed = min(scenarios$seed) - 1 + 1:nrow(scenarios)
 
-scenarios$Y = 0.25
+scenarios$M = 1/8 + (5/8)*scenarios$MHY=="M"
+scenarios$Y = 1/8 + (5/8)*scenarios$MHY=="Y"
 
 scenarios = scenarios[,c("seed", "nnet", "ntaxa", "lambda", "mu", "nu", "M", "Y", "d_0", "ngt")]
 
@@ -78,11 +79,11 @@ parallel_job = function(i) {
   command2 = paste(julia, script2, sep=" ")
   
   # parameters for siphynetwork
-  params1 = scenarios[i, 1:9]
+  params1 = scenarios[i, 1:10]
   params1 = paste(unlist(params1), collapse=" ")
   
   # parameters for phylocoalsimulations
-  params2 = scenarios[i, 10]
+  params2 = scenarios[i, 11]
   params2 = paste(unlist(params2), collapse=" ")
   
   command1 = paste(command1, params1, sep=" ")
@@ -108,7 +109,7 @@ serial_job = function(i) {
   #command3 = paste(R,     "3_summarize_findings.R",           sep=" ")
   
   # parameters for final summary
-  params3 = scenarios[i, 1:10]
+  params3 = scenarios[i, 1:11]
   #params3 = paste(unlist(params2), collapse=" ")
   params3 = as.numeric(params3)
   
