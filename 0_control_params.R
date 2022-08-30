@@ -6,7 +6,7 @@
 
 # output is "results.csv".
 
-seed   =  1440 + 1:3        # i like to do current time.  what you add is nreps
+seed   =  1440 + 1:2        # i like to do current time.  what you add is nreps
 nnet   =  800               # number of networks per scenario
 ntaxa  =  c(4, 8)           # number of taxa per network
 lambda =  c(0.1, 0.3, 1, 3) # speciation rate, in CUs
@@ -130,7 +130,7 @@ serial_job = function(i) {
 }
 
 
-numCores = detectCores()-1 #let's not be greedy
+numCores = detectCores()-1 #let's not be greedy ;)
 results_parallel = mclapply(X=1:nrow(scenarios), FUN=parallel_job, mc.cores = numCores)
 results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job                     )
 
