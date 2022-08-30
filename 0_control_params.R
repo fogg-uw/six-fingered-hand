@@ -81,17 +81,21 @@ parallel_job = function(i) {
   command2 = paste(julia, script2, sep=" ")
   
   # parameters for siphynetwork
-  params1 = scenarios[i, 1:10]
+  params1 = scenarios[i, 1:9]
   params1 = paste(unlist(params1), collapse=" ")
   
   # parameters for phylocoalsimulations
-  params2 = scenarios[i, 11]
+  params2 = scenarios[i, 10]
   params2 = paste(unlist(params2), collapse=" ")
   
+  
   command1 = paste(command1, params1, sep=" ")
+  
   command2 = paste(command2, params2, sep=" ")
   
+  cat(paste0(jobdir, " "))
   system(command1)
+  cat(paste0(jobdir, " "))
   system(command2)
   
   setwd(startingdir)
@@ -111,7 +115,7 @@ serial_job = function(i) {
   #command3 = paste(R,     "3_summarize_findings.R",           sep=" ")
   
   # parameters for final summary
-  params3 = scenarios[i, 1:11]
+  params3 = scenarios[i, 1:10]
   #params3 = paste(unlist(params2), collapse=" ")
   params3 = as.numeric(params3)
   
