@@ -93,9 +93,9 @@ parallel_job = function(i) {
   
   command2 = paste(command2, params2, sep=" ")
   
-  cat(paste0(jobdir, " "))
+  cat(paste(jobdir, command1, "\n"))
   system(command1)
-  cat(paste0(jobdir, " "))
+  cat(paste(jobdir, command2, "\n"))
   system(command2)
   
   setwd(startingdir)
