@@ -49,6 +49,8 @@ for file in files
 	end
 	global readTopologySuccess += 1
 
+	deleteaboveLSA!(tree)
+
 	taxa = tipLabels(tree)
 	numTaxa = length(taxa)
 
