@@ -19,6 +19,8 @@ ngt    =  200               # number of gene trees per quartet
 julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
 R      = "Rscript"
 
+timeout = "10m"
+
 #on john's machine: julia = "/home/john/julia-1.7.3/bin/julia"
 
 # R will expand.grid the 9 parameter sets and ask SiPhyNetworks to simulate
@@ -72,13 +74,14 @@ script3 = file.path(startingdir, "3_summarize_findings.R")
 parallel_job = function(i) {
   
   jobdir = paste0("job", i)
+  tic(jobdir)
   cat(paste('start', jobdir, '\n'))
   unlink(jobdir, recursive = TRUE)
   dir.create(jobdir)
   setwd(jobdir)
   
-  command1 = paste("timeout 30m", R,     script1, sep=" ")
-  command2 = paste("timeout 30m", julia, script2, sep=" ")
+  command1 = paste("timeout", timeout, R,     script1, sep=" ")
+  command2 = paste("timeout", timeout, julia, script2, sep=" ")
   
   # parameters for siphynetwork
   params1 = scenarios[i, 1:9]
@@ -100,7 +103,8 @@ parallel_job = function(i) {
   
   setwd(startingdir)
   cat('finish', jobdir, '\n')
-  return(i)
+  time = toc()
+  return(time$toc - time$tic)
 }
 
 serial_job = function(i) {
@@ -140,6 +144,8 @@ results = results_serial[[1]]
 for(i in 2:length(results_serial)) {
   try(results = rbind(results, results_serial[[i]]))
 }
+
+results$time = unlist(results_parallel)
 
 write.csv(results, "results.csv")
 toc()
