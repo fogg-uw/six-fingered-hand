@@ -54,8 +54,8 @@ scenarios$d_0 = scenarios$d_0 / scenarios$lambda
 
 scenarios$seed = min(scenarios$seed) - 1 + 1:nrow(scenarios)
 
-scenarios$M = 1/8 + (5/8)*scenarios$MHY=="M"
-scenarios$Y = 1/8 + (5/8)*scenarios$MHY=="Y"
+scenarios$M = 1/8 + (5/8)*as.numeric(scenarios$MHY=="M")
+scenarios$Y = 1/8 + (5/8)*as.numeric(scenarios$MHY=="Y")
 
 scenarios = scenarios[,c("seed", "nnet", "ntaxa", "lambda", "mu", "nu", "M", "Y", "d_0", "ngt")]
 
