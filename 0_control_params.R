@@ -38,6 +38,7 @@ library(tictoc)
 
 ###
 
+tic("main job")
 scenarios = expand.grid(seed=seed,
                         nnet=nnet,
                         ntaxa=ntaxa,
@@ -71,6 +72,7 @@ script3 = file.path(startingdir, "3_summarize_findings.R")
 parallel_job = function(i) {
   
   jobdir = paste0("job", i)
+  cat(paste0(jobdir, '\n'))
   unlink(jobdir, recursive = TRUE)
   dir.create(jobdir)
   setwd(jobdir)
@@ -123,9 +125,11 @@ serial_job = function(i) {
   
 }
 
+
 numCores = detectCores()-1 #let's not be greedy
 results_parallel = mclapply(X=1:nrow(scenarios), FUN=parallel_job, mc.cores = numCores)
 results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job                     )
+
 
 results = results_serial[[1]]
 for(i in 2:length(results_serial)) {
@@ -133,3 +137,4 @@ for(i in 2:length(results_serial)) {
 }
 
 write.csv(results, "results.csv")
+toc()
