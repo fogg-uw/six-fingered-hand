@@ -142,7 +142,7 @@ results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job               
 
 results = results_serial[[1]]
 for(i in 2:length(results_serial)) {
-  try(results = rbind(results, results_serial[[i]]))
+  results = rbind(results, results_serial[[i]])
 }
 
 results$time = unlist(results_parallel)
