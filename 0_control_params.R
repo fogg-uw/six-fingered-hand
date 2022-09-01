@@ -111,21 +111,14 @@ serial_job = function(i) {
   
   source(script3)
   
-  #cat(startingdir)
   setwd(startingdir)
   jobdir = paste0("job", i)
   setwd(jobdir)
-  #cat(jobdir)
-  
-  #command3 = paste(R,     "3_summarize_findings.R",           sep=" ")
   
   # parameters for final summary
   params3 = scenarios[i, 1:10]
-  #params3 = paste(unlist(params2), collapse=" ")
   params3 = as.numeric(params3)
   
-  #command3 = paste(command3, params3, sep=" ")
-  #system(command3)
   table_to_write = summarize_findings(params3)
   
   setwd(startingdir)

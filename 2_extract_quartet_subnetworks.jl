@@ -1,10 +1,7 @@
 # usage: julia 2_extract_quartet_subnetworks.jl [ngt]
 # ngt is the number of gene trees for PCS to simulate per quartet network.
 
-#print("2_extract_quartet_subnetworks.jl" * "\n")
-#print(pwd())
-using PhyloNetworks # master version
-#cd("/media/john/Phylo/research/2022-05-18 six-fingered hand/vary_params/six-fingered-hand")
+using PhyloNetworks
 include("find_blobs_and_degree.jl")
 include("find_3blobqCF.jl")
 ngt = parse(Int64, ARGS[1])
@@ -152,13 +149,6 @@ for file in files
 		push!(split3, qCF[3])
 	end
 end
-
-# remove SiPhyNetwork_output
-#files = readdir(inputdir)
-#for file in files
-#	rm(joinpath(inputdir, file))
-#end
-#rm(inputdir, recursive=true)
 
 using DataFrames
 df = DataFrame(
