@@ -20,6 +20,7 @@ julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
 R      = "Rscript"
 
 timeout = "10m"
+delete1 = TRUE # whether to simulate up to N+1 taxa, then delete 1 later
 
 #on john's machine: julia = "/home/john/julia-1.7.3/bin/julia"
 
@@ -80,21 +81,17 @@ parallel_job = function(i) {
   dir.create(jobdir)
   setwd(jobdir)
   
-  command1 = paste("timeout", timeout, R,     script1, sep=" ")
-  command2 = paste("timeout", timeout, julia, script2, sep=" ")
-  
   # parameters for siphynetwork
   params1 = scenarios[i, 1:9]
+  if(delete1) params1["ntaxa"] = params1["ntaxa"] + 1
   params1 = paste(unlist(params1), collapse=" ")
   
   # parameters for phylocoalsimulations
   params2 = scenarios[i, 10]
-  params2 = paste(unlist(params2), collapse=" ")
+  params2 = paste(unlist(params2), as.numeric(delete1), collapse=" ")
   
-  
-  command1 = paste(command1, params1, sep=" ")
-  
-  command2 = paste(command2, params2, sep=" ")
+  command1 = paste("timeout", timeout, R,     script1, params1, sep=" ")
+  command2 = paste("timeout", timeout, julia, script2, params2, sep=" ")
   
   cat(paste(jobdir, command1, "\n"))
   system(command1)

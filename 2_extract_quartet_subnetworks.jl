@@ -1,14 +1,23 @@
-# usage: julia 2_extract_quartet_subnetworks.jl [ngt]
+# usage: julia 2_extract_quartet_subnetworks.jl [ngt] [delete1]
 # ngt is the number of gene trees for PCS to simulate per quartet network.
+# delete1 = 1,0 is whether to delete 1 (one) leaf from each network before doing anything else with it (like examining quartets).
 
 using PhyloNetworks
+using Random
 include("find_blobs_and_degree.jl")
 include("find_3blobqCF.jl")
 ngt = parse(Int64, ARGS[1])
+delete1 = parse(Int8, ARGS[2])
+if !(delete1 == 0 || delete1 == 1)
+	print("delete1 not 0 or 1, interpreting as 0")
+	delete1 = 0
+end
 inputdir = "SiPhyNetwork_output/"
 #need to loop over trees
 files = readdir(inputdir)
 files = filter(x -> occursin(r"sim\d+\.tree", x), files)
+seed = 9 # nine rings for men
+Random.seed!(seed)
 
 #scalar variables (updated as we loop through trees; mostly for debugging)
 
@@ -58,6 +67,13 @@ for file in files
 
 	taxa = tipLabels(tree)
 	numTaxa = length(taxa)
+
+	# randomly sample 1 tip to prune, if requested by user
+	if delete1==1
+		pruneit = taxa[rand(1:numTaxa)]
+		deleteleaf!(tree, pruneit, simplify=false, nofuse=false)
+	end
+	
 
 	# loop over quartets
 	using Combinatorics
