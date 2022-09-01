@@ -65,16 +65,15 @@ for file in files
 
 	deleteaboveLSA!(tree)
 
-	taxa = tipLabels(tree)
-	numTaxa = length(taxa)
-
 	# randomly sample 1 tip to prune, if requested by user
 	if delete1==1
-		pruneit = taxa[rand(1:numTaxa)]
+		taxa = tipLabels(tree)
+		pruneit = taxa[rand(1:length(taxa))]
 		deleteleaf!(tree, pruneit, simplify=false, nofuse=false)
-		numTaxa = numTaxa - 1
-		taxa = setdiff(taxa, pruneit)
 	end
+
+	taxa = tipLabels(tree)
+	numTaxa = length(taxa)
 
 	# loop over quartets
 	using Combinatorics
