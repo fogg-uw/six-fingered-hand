@@ -72,8 +72,9 @@ for file in files
 	if delete1==1
 		pruneit = taxa[rand(1:numTaxa)]
 		deleteleaf!(tree, pruneit, simplify=false, nofuse=false)
+		numTaxa = numTaxa - 1
+		taxa = setdiff(taxa, pruneit)
 	end
-	
 
 	# loop over quartets
 	using Combinatorics
