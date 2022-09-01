@@ -16,8 +16,12 @@ files = filter(x -> occursin(r"sim\d+\.tree", x), files)
 #scalar variables (updated as we loop through trees; mostly for debugging)
 
 global numquartet = 0
+global num2cycle = 0
+global num2blob = 0
 global num3blob = 0
 global num4blob = 0
+global num5blob = 0
+global num6blob = 0
 global readTopologySuccess = 0
 global readTopologyFail = 0
 
@@ -25,8 +29,12 @@ global readTopologyFail = 0
 
 global sim_num = Int16[]
 global quartet_num = String[]
+global num2cycle_col = Int16[]
+global num2blob_col = Int16[]
 global num3blob_col = Int16[]
 global num4blob_col = Int16[]
+global num5blob_col = Int16[]
+global num6blob_col = Int16[]
 global qCF_n = Int16[]
 global split1 = Float16[]
 global split2 = Float16[]
@@ -78,21 +86,45 @@ for file in files
 		
 		quartet_blob_degree = blob_degree(quartettree)
 
-		global quartet_num4blob = 0
+		global quartet_num2cycle = 0
+		global quartet_num2blob = 0
 		global quartet_num3blob = 0
+		global quartet_num4blob = 0
+		global quartet_num5blob = 0
+		global quartet_num6blob = 0
+
+		for blob in biconnectedComponents(quartettree)
+			if length(blob)==2
+				quartet_num2cycle += 1
+				global num2cycle += 1
+			end
+		end
+		
 		for degree in quartet_blob_degree[2]
-			if degree == 3
+			if degree == 2
+				quartet_num2blob += 1
+				global num2blob += 1
+			elseif degree == 3
 				quartet_num3blob += 1
 				global num3blob += 1
-			end
-			if degree == 4
+			elseif degree == 4
 				quartet_num4blob += 1
 				global num4blob += 1
+			elseif degree == 5
+				quartet_num5blob += 1
+				global num5blob += 1
+			elseif degree == 6
+				quartet_num6blob += 1
+				global num6blob += 1
 			end
 		end
 
+		push!(num2cycle_col, quartet_num2cycle)
+		push!(num2blob_col, quartet_num2blob)
 		push!(num3blob_col, quartet_num3blob)
 		push!(num4blob_col, quartet_num4blob)
+		push!(num5blob_col, quartet_num5blob)
+		push!(num6blob_col, quartet_num6blob)
 		
 		ngenes = -1
 		qCF = [-1,-1,-1]
@@ -132,8 +164,12 @@ using DataFrames
 df = DataFrame(
 	sim_num=sim_num,
 	quartet_num=quartet_num,
+	num2cycle_col=num2cycle_col,
+	num2blob_col=num2blob_col,
 	num3blob_col=num3blob_col,
 	num4blob_col=num4blob_col,
+	num5blob_col=num5blob_col,
+	num6blob_col=num6blob_col,
 	qCF_n=qCF_n,
 	split1=split1,
 	split2=split2,
