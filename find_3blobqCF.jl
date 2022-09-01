@@ -12,10 +12,7 @@
 =#
 
 using Random
-using PhyloNetworks # ] add PhyloNetworks#master on 2022-05-20
-#using PhyloPlots
-#using QuartetNetworkGoodnessFit # to install & use HybridLambda
-#using HypothesisTests
+using PhyloNetworks
 using PhyloCoalSimulations
 
 """
@@ -153,22 +150,6 @@ julia> pvalue(BinomialTest(n_cf2, n_cf2 + n_minor), tail=:left) # also with CF2 
 """
 function quartettype_qCF(net::HybridNetwork, 
         nsim=200; seed=nothing, verbose=true)
-
-    """
-    # ulrametrize to the degree of precision needed by hybridlambda
-
-    for edge in net.edge
-      edge.length = floor(edge.length, digits=10)
-    end
-    """
-
-    """
-    # label the quartet tips q1, q2, q3, q4 to avoid sorting problems later
-
-    for leaf in net.leaf
-
-    end
-    """
 
     taxonlist = sort(tipLabels(net))
     length(taxonlist) == 4 || error("there aren't 4 tips: $taxonlist")

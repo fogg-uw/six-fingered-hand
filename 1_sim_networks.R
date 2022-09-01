@@ -2,9 +2,7 @@
 ## Rscript 1_sim_networks.R [seed] [nnet] ... [d_0]
 ## see below for all required arguments.
 
-#cat("1_sim_networks.R\n")
 args = commandArgs(trailingOnly=TRUE)
-#print(args)
 args = as.numeric(args)
 
 seed   = args[1] # random seed
@@ -19,7 +17,6 @@ d_0    = args[9] # lineages cannot hybridize if further apart than d_0
 
 ###
 
-#library(tictoc)
 library(SiPhyNetwork)
 library(ape)
 
@@ -39,7 +36,6 @@ inheritance.fxn <- make.beta.draw(1,1) # beta(1,1) distribution (i.e. unif(0,1))
 # sometimes networks go extinct, so i do a while-loop to keep running
 # SiPhyNetwork until i get the number of extant networks i want.
 
-#tic("starting ssa_nets")
 ssa_nets_full = list()
 while(length(ssa_nets_full) < nnet) {
   numbsim = nnet - length(ssa_nets_full)
@@ -57,7 +53,6 @@ while(length(ssa_nets_full) < nnet) {
   extantNets = ssa_nets[!isExtinct]
   ssa_nets_full = c(ssa_nets_full, extantNets)
 }
-#toc()
 
 outputdir = "SiPhyNetwork_output"
 unlink(outputdir, recursive=TRUE) # delete all existing output!
