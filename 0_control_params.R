@@ -119,6 +119,7 @@ serial_job = function(i) {
   params3 = scenarios[i, 1:10]
   params3 = as.numeric(params3)
   
+
   table_to_write = summarize_findings(params3)
   
   setwd(startingdir)

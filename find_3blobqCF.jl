@@ -175,7 +175,9 @@ function quartettype_qCF(net::HybridNetwork,
     nsplits = size(mat,1)
     isnothing(seed) || Random.seed!(seed)
 
+    #print("about to try PCS")
     treelist = PhyloCoalSimulations.simulatecoalescent(net, nsim, 1)
+    #print("done trying PCS")
 
     obsCF, t = countquartetsintrees(treelist; showprogressbar=verbose)
 
