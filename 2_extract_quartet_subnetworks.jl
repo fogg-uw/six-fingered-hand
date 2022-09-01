@@ -1,15 +1,19 @@
-print("2_extract_quartet_subnetworks.jl" * "\n")
+# usage: julia 2_extract_quartet_subnetworks.jl [ngt]
+# ngt is the number of gene trees for PCS to simulate per quartet network.
+
+#print("2_extract_quartet_subnetworks.jl" * "\n")
+#print(pwd())
 using PhyloNetworks # master version
-using Random
-using QuartetNetworkGoodnessFit
-Random.seed!(1718) # current time
-cd("/media/john/Phylo/research/2022-05-18 six-fingered hand/six-fingered-hand")
-include("3_find_blobs_and_degree.jl")
+#cd("/media/john/Phylo/research/2022-05-18 six-fingered hand/vary_params/six-fingered-hand")
+include("find_blobs_and_degree.jl")
 include("find_3blobqCF.jl")
+ngt = parse(Int64, ARGS[1])
 inputdir = "SiPhyNetwork_output/"
 #need to loop over trees
 files = readdir(inputdir)
 files = filter(x -> occursin(r"sim\d+\.tree", x), files)
+
+#scalar variables (updated as we loop through trees; mostly for debugging)
 
 global numquartet = 0
 global num2cycle = 0
@@ -18,6 +22,10 @@ global num3blob = 0
 global num4blob = 0
 global num5blob = 0
 global num6blob = 0
+global readTopologySuccess = 0
+global readTopologyFail = 0
+
+#vector variables (record new entries as we loop through trees/networks; export at end)
 
 global sim_num = Int16[]
 global quartet_num = String[]
@@ -32,13 +40,12 @@ global split1 = Float16[]
 global split2 = Float16[]
 global split3 = Float16[]
 
-global readTopologySuccess = 0
-global readTopologyFail = 0
+# this last is for debugging.
 
 global readTopologyFailures = String[]
 
 for file in files
-	print(file * '\n')
+	#print(file * '\n')
 
 	try
 		global tree = readTopology(joinpath(inputdir, file))
@@ -49,6 +56,8 @@ for file in files
 		continue
 	end
 	global readTopologySuccess += 1
+
+	deleteaboveLSA!(tree)
 
 	taxa = tipLabels(tree)
 	numTaxa = length(taxa)
@@ -63,12 +72,9 @@ for file in files
 	quartets = collect(combinations(1:numTaxa,4))
 	for quartet in quartets
 		m = match(r"sim(\d+)\.tree", file)
-		#print(m.captures[1] * '\n')
-		#print(string(parse(Int16, m.captures[1])) * '\n')
 		push!(sim_num, parse(Int16, m.captures[1]))
 		global numquartet += 1
 		push!(quartet_num, string(quartet))
-		#print(" " * string(quartet) * "\n")
 
 		quartet_taxa = taxa[quartet]
 		notquartet_taxa = setdiff(taxa, quartet_taxa)
@@ -120,10 +126,6 @@ for file in files
 		push!(num5blob_col, quartet_num5blob)
 		push!(num6blob_col, quartet_num6blob)
 		
-		#print(" quartet " * string(quartet) * "\n")
-		#print("  quartet_num4blob=" * string(quartet_num4blob) * "\n")
-		#print("  quartet_num3blob=" * string(quartet_num3blob) * "\n")
-		
 		ngenes = -1
 		qCF = [-1,-1,-1]
 
@@ -135,16 +137,12 @@ for file in files
 			nothing
 		elseif quartet_num3blob > 0
 			#print("   6. if there is a 3-degree blob (therefore no 4-degree blob), then:")
-			ngenes=3200
-			outputdir = "hl_output";
-			ispath(outputdir) || mkdir(outputdir);
-			gt = joinpath(outputdir, "d3blob"); # this file will be created then deleted
+			ngenes=ngt
 			try
-				ns, qCF, hwc, df = quartettype_qCF(quartettree, gt, ngenes; seed=321, verbose=false)
-				#print("  " * string(qCF) * "\n")
+				ns, qCF, hwc, df = quartettype_qCF(quartettree, ngenes; seed=321, verbose=false)
 			catch y
-				#print("  encountered error in quartettype_qCF" * "\n")
-				#print(string(y) * "\n")
+				print("  encountered error in quartettype_qCF" * "\n")
+				print(string(y) * "\n")
 			end
 		end
 
@@ -152,22 +150,15 @@ for file in files
 		push!(split1, qCF[1])
 		push!(split2, qCF[2])
 		push!(split3, qCF[3])
-
-		if quartet == quartets[1]
-			global subnetworks = [quartettree]
-		else
-			push!(subnetworks, quartettree)
-		end
-	end
-	#print("numquartet " * string(numquartet) * "\n")
-	#print("num4blob=" * string(num4blob) * "\n")
-	#print("num3blob=" * string(num3blob) * "\n")
-	if file == files[1]
-		global sim_subnetworks = [subnetworks]
-	else
-		push!(sim_subnetworks, subnetworks)
 	end
 end
+
+# remove SiPhyNetwork_output
+#files = readdir(inputdir)
+#for file in files
+#	rm(joinpath(inputdir, file))
+#end
+#rm(inputdir, recursive=true)
 
 using DataFrames
 df = DataFrame(
