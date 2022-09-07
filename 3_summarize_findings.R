@@ -29,7 +29,7 @@ sum(quartets$num3blob_col == 0 & quartets$num4blob_col >  0)
 sum(quartets$num3blob_col  > 0 & quartets$num4blob_col == 0)
 sum(quartets$num3blob_col == 0 & quartets$num4blob_col == 0)
 
-# A: quartet has 3blob and no 4blob.  analysis is desirable
+# A: quartet has 1 or 2 displayed trees.  analysis is desirable
 quartets$A = quartets$num3blob_col  > 0 & quartets$num4blob_col == 0
 
 sum(quartets$A & quartets$split1 > -1)

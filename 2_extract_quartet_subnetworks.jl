@@ -41,6 +41,7 @@ global num3blob_col = Int16[]
 global num4blob_col = Int16[]
 global num5blob_col = Int16[]
 global num6blob_col = Int16[]
+global nsplit = Int8[]
 global qCF_n = Int16[]
 global split1 = Float16[]
 global split2 = Float16[]
@@ -67,9 +68,12 @@ for file in files
 
 	# randomly sample 1 tip to prune, if requested by user
 	if delete1==1
+		print(file * "delete1\n")
 		taxa = tipLabels(tree)
 		pruneit = taxa[rand(1:length(taxa))]
 		deleteleaf!(tree, pruneit, simplify=false, nofuse=false)
+	else
+		print(file * "no delete1\n")
 	end
 
 	taxa = tipLabels(tree)
@@ -83,6 +87,9 @@ for file in files
 	end
 	
 	quartets = collect(combinations(1:numTaxa,4))
+	print(numTaxa)
+	print(quartets)
+	print("\n")
 	for quartet in quartets
 		m = match(r"sim(\d+)\.tree", file)
 		push!(sim_num, parse(Int16, m.captures[1]))
@@ -138,51 +145,24 @@ for file in files
 		push!(num4blob_col, quartet_num4blob)
 		push!(num5blob_col, quartet_num5blob)
 		push!(num6blob_col, quartet_num6blob)
-		
-		ngenes = -1
-		qCF = [-1,-1,-1]
 
-		if quartet_num4blob > 0
-			#print("   4. if there is a 4-degree blob: all good. B-quartet, no pathology." * "\n")
-			nothing
-		elseif quartet_num4blob == 0 && quartet_num3blob == 0
-			#print("   5. if there is no 4-degree blob and no 3-degree blob: probably all good (?)." * "\n")
-			nothing
-		elseif quartet_num3blob > 0
-			#print("   6. if there is a 3-degree blob (therefore no 4-degree blob), then:")
-			ngenes=ngt
-			try
-				ns, qCF, hwc, df = quartettype_qCF(quartettree, ngenes; seed=321, verbose=false)
-			catch y
-				print("  encountered error in quartettype_qCF" * "\n")
-				print(string(y) * "\n")
-			end
-		end
+		ns, qCF, hwc, df = quartettype_qCF(quartettree, ngt; seed=321, verbose=false)
 
-		push!(qCF_n, ngenes)
+		push!(nsplit, ns)
+		push!(qCF_n, ngt)
 		push!(split1, qCF[1])
 		push!(split2, qCF[2])
 		push!(split3, qCF[3])
 	end
 end
 
-# remove SiPhyNetwork_output
-#files = readdir(inputdir)
-#for file in files
-#	rm(joinpath(inputdir, file))
-#end
-#rm(inputdir, recursive=true)
-
 using DataFrames
 df = DataFrame(
 	sim_num=sim_num,
 	quartet_num=quartet_num,
-	num2cycle_col=num2cycle_col,
-	num2blob_col=num2blob_col,
 	num3blob_col=num3blob_col,
 	num4blob_col=num4blob_col,
-	num5blob_col=num5blob_col,
-	num6blob_col=num6blob_col,
+	nsplit=nsplit,
 	qCF_n=qCF_n,
 	split1=split1,
 	split2=split2,
