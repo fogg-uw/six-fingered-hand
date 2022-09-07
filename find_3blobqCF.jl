@@ -14,6 +14,7 @@
 using Random
 using PhyloNetworks
 using PhyloCoalSimulations
+using DataFrames
 
 """
     quartettype_qCF(net, nsim=200; seed=nothing, verbose=true)
