@@ -17,7 +17,7 @@ table_to_write = data.frame(
   C = NA,
   D = NA
 )
-if(!(quartets.csv %in% dir())) return(table_to_write)
+if(!("quartets.csv" %in% dir())) return(table_to_write)
 quartets = read.csv("quartets.csv")
 nets = data.frame(sim_num = unique(quartets$sim_num))
 nrow(nets)
