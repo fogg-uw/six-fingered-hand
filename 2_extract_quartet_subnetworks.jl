@@ -68,12 +68,9 @@ for file in files
 
 	# randomly sample 1 tip to prune, if requested by user
 	if delete1==1
-		print(file * "delete1\n")
 		taxa = tipLabels(tree)
 		pruneit = taxa[rand(1:length(taxa))]
 		deleteleaf!(tree, pruneit, simplify=false, nofuse=false)
-	else
-		print(file * "no delete1\n")
 	end
 
 	taxa = tipLabels(tree)
@@ -87,9 +84,6 @@ for file in files
 	end
 	
 	quartets = collect(combinations(1:numTaxa,4))
-	print(numTaxa)
-	print(quartets)
-	print("\n")
 	for quartet in quartets
 		m = match(r"sim(\d+)\.tree", file)
 		push!(sim_num, parse(Int16, m.captures[1]))
