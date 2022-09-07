@@ -173,12 +173,13 @@ function quartettype_qCF(net::HybridNetwork,
     end
     mat = mat[tokeep,:]
     nsplits = size(mat,1)
+
+    # if 3 splits, no qCFs can be anomalous, so need to simulate gene trees:
+    nsplits == 3 && return nsplits, (split1=-1, split2=-1, split3=-1), mat, DataFrame()
+
+    # otherwise: simulate gene trees!
     isnothing(seed) || Random.seed!(seed)
-
-    #print("about to try PCS")
     treelist = PhyloCoalSimulations.simulatecoalescent(net, nsim, 1)
-    #print("done trying PCS")
-
     obsCF, t = countquartetsintrees(treelist; showprogressbar=verbose)
 
     taxonlist == t || @error("different order of taxa used by countquartetsintrees (but maybe john's code will help)")

@@ -30,7 +30,7 @@ sum(quartets$num3blob_col  > 0 & quartets$num4blob_col == 0)
 sum(quartets$num3blob_col == 0 & quartets$num4blob_col == 0)
 
 # A: quartet has 1 or 2 displayed trees.  analysis is desirable
-quartets$A = quartets$num3blob_col  > 0 & quartets$num4blob_col == 0
+quartets$A = quartets$nsplit == 1 | quartets$nsplit == 2
 
 sum(quartets$A & quartets$split1 > -1)
 sum(quartets$A & quartets$split1 <= -1)
@@ -47,10 +47,26 @@ quartets$n3 = as.integer(quartets$qCF_n * quartets$split3)
 sum(quartets$B & quartets$split1 >= 1/3)
 sum(quartets$B & quartets$split1 < 1/3 )
 
-# C: B is true and observed major qCF is less than 1/3.  analysis finds
-# "anomaly", in a loose sense
-quartets$C = quartets$B & quartets$split1 < 1/3
+# C: B is true and (I or II)
+# I. 1 displayed split and observed major qCF is less than 1/3 
+# II. 2 displayed splits and observed minor qCF is not the smallest.
+# analysis finds "anomaly", in a loose sense
 
+quartets$smallestSplit                                                                        = 1
+quartets$smallestSplit[quartets$split2 < quartets$split1]                                     = 2
+quartets$smallestSplit[quartets$split3 < quartets$split2 & quartets$split3 < quartets$split1] = 3
+
+quartets$I  = quartets$B & quartets$nsplit == 1 & quartets$split1 < 1/3
+quartets$II = quartets$B & quartets$nsplit == 2 & quartets$smallestSplit != 3
+quartets$C  = quartets$I | quartets$II
+
+# D: C is true and population major CF tested to be < 1/3.  analysis finds
+# "anomaly" in a stricter sense
+# NOTE: this isn't updated for 4-blobs!  i haven't been using it anyway, so
+# let's just quote it out...
+
+quartets$D = FALSE
+"
 quartets$test1_p = as.numeric(NA)
 quartets$test2_p = as.numeric(NA)
 for (i in 1:nrow(quartets)) {
@@ -70,9 +86,8 @@ for (i in 1:nrow(quartets)) {
 
 alpha = 0.05
 numtests = sum(quartets$C)
-# D: C is true and population major CF tested to be < 1/3.  analysis finds
-# "anomaly" in a stricter sense
 quartets$D = quartets$C & quartets$test2_p < alpha / numtests
+"
 
 table_to_write$q = nrow(quartets)
 table_to_write$A = sum(quartets$A)
