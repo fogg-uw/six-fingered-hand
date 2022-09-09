@@ -82,6 +82,12 @@ for(i in 1:nnet) {
   }
   file = paste0('sim', j, '.tree')
   file = file.path(outputdir, file)
-  print(paste(as.character(args), as.character(i)))
-  try(write.net(ssa_nets_full[[i]], file = file), TRUE)
+  tryCatch(
+      {
+        write.net(ssa_nets_full[[i]], file = file)
+      },
+      error = function(cond) {
+        print(paste(as.character(args), as.character(i)))
+      }
+    )
 }
