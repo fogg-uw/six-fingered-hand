@@ -87,6 +87,7 @@ for(i in 1:nnet) {
         write.net(ssa_nets_full[[i]], file = file)
       },
       error = function(cond) {
+        print(paste(as.character(args), as.character(i)))
         message(paste(as.character(args), as.character(i)))
         return(NA)
       }
