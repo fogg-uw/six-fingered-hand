@@ -20,7 +20,7 @@ ngt    =  200                # number of gene trees per quartet
 julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
 R      = "Rscript"
 
-timeout = "20m"
+timeout = "5m" # let's do fast turnarounds
 delete1 = FALSE # whether to simulate up to N+1 taxa, then delete 1 later
 
 #on john's machine: julia = "/home/john/julia-1.7.3/bin/julia"
@@ -137,7 +137,7 @@ serial_job = function(i) {
   table_to_write = summarize_findings(params3)
   
   setwd(startingdir)
-  unlink(jobdir, recursive=TRUE)
+  #unlink(jobdir, recursive=TRUE) # i want to leave these for followup
   return(table_to_write)
   
 }
