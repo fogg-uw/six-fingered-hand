@@ -79,7 +79,7 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 
 	if numTaxa < 4
 		print("fewer than 4 taxa, no quartets exist\n")
-		continue
+		return(NA)
 	end
 
 	quartets = collect(combinations(1:numTaxa,4))
