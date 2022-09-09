@@ -4,65 +4,64 @@
 
 using PhyloNetworks
 using Random
+using DataFrames
+using Combinatorics
+using CSV
+
 include("find_blobs_and_degree.jl")
 include("find_3blobqCF.jl")
+
 ngt = parse(Int64, ARGS[1])
 delete1 = parse(Int8, ARGS[2])
+
 if !(delete1 == 0 || delete1 == 1)
 	print("delete1 not 0 or 1, interpreting as 0")
 	delete1 = 0
 end
-inputdir = "SiPhyNetwork_output/"
-#need to loop over trees
-files = readdir(inputdir)
-files = filter(x -> occursin(r"sim\d+\.tree", x), files)
+
 seed = 9 # nine rings for men
 Random.seed!(seed)
 
-#scalar variables (updated as we loop through trees; mostly for debugging)
+#need to loop over trees
 
-global numquartet = 0
-global num2cycle = 0
-global num2blob = 0
-global num3blob = 0
-global num4blob = 0
-global num5blob = 0
-global num6blob = 0
-global readTopologySuccess = 0
-global readTopologyFail = 0
+inputdir = "SiPhyNetwork_output/"
+files = readdir(inputdir)
+files = filter(x -> occursin(r"sim\d+\.tree", x), files)
+N = length(files)
+dfts = repeat([DataFrame()], N) # N data frames, one for each tree, later compressed into one data frame
 
-#vector variables (record new entries as we loop through trees/networks; export at end)
+# analog to "zeros" function for strings
 
-global sim_num = Int16[]
-global quartet_num = String[]
-global num2cycle_col = Int16[]
-global num2blob_col = Int16[]
-global num3blob_col = Int16[]
-global num4blob_col = Int16[]
-global num5blob_col = Int16[]
-global num6blob_col = Int16[]
-global nsplit = Int8[]
-global qCF_n = Int16[]
-global split1 = Float16[]
-global split2 = Float16[]
-global split3 = Float16[]
+blankstrings = function(N=1)
+	empty = String[]
+	for i in 1:N
+		push!(empty, "")
+	end
+	return(empty)
+end
 
-# this last is for debugging.
+# "global" scalar variables (exist outside of trees; mostly for debugging)
 
-global readTopologyFailures = String[]
+readTopologySuccess = zeros(Int8, N)
+readTopologyFailures = blankstrings(N)
 
-for file in files
+function analyzeTreeFile(treefile::String, treenum::Int64)
+
 	#print(file * '\n')
 
+	m = match(r"sim(\d+)\.tree", treefile)
+	sim_num = parse(Int16, m.captures[1])
+
+	tree = PhyloNetworks.Network
+
 	try
-		global tree = readTopology(joinpath(inputdir, file))
+		tree = readTopology(joinpath(inputdir, treefile))
 	catch
 		print("couldn't read topology")
-		global readTopologyFail += 1
-		push!(readTopologyFailures, file)
-		continue
+		readTopologyFailures[treenum] = treefile
+		return(NA)
 	end
-	global readTopologySuccess += 1
+	readTopologySuccess[treenum] = 1
 
 	deleteaboveLSA!(tree)
 
@@ -77,92 +76,94 @@ for file in files
 	numTaxa = length(taxa)
 
 	# loop over quartets
-	using Combinatorics
+
 	if numTaxa < 4
 		print("fewer than 4 taxa, no quartets exist\n")
 		continue
 	end
-	
+
 	quartets = collect(combinations(1:numTaxa,4))
-	for quartet in quartets
-		m = match(r"sim(\d+)\.tree", file)
-		push!(sim_num, parse(Int16, m.captures[1]))
-		global numquartet += 1
-		push!(quartet_num, string(quartet))
+	nquartets = length(quartets)
+	
+	dft = DataFrame(
+		sim_num = repeat([sim_num], nquartets),
+		quartet_num  = repeat([""], nquartets),
+		num3blob_col = repeat([-1], nquartets),
+		num4blob_col = repeat([-1], nquartets),
+		nsplit       = repeat([-1], nquartets),
+		qCF_n        = repeat([-1], nquartets),
+		split1       = repeat([-1], nquartets),
+		split2       = repeat([-1], nquartets),
+		split3       = repeat([-1], nquartets)
+	)
 
-		quartet_taxa = taxa[quartet]
-		notquartet_taxa = setdiff(taxa, quartet_taxa)
-		quartettree = deepcopy(tree)
-		for pruneit in notquartet_taxa
-			deleteleaf!(quartettree, pruneit, simplify=false, nofuse=false)
-		end
-		deleteaboveLSA!(quartettree)
-		
-		quartet_blob_degree = blob_degree(quartettree)
-
-		global quartet_num2cycle = 0
-		global quartet_num2blob = 0
-		global quartet_num3blob = 0
-		global quartet_num4blob = 0
-		global quartet_num5blob = 0
-		global quartet_num6blob = 0
-
-		for blob in biconnectedComponents(quartettree)
-			if length(blob)==2
-				quartet_num2cycle += 1
-				global num2cycle += 1
-			end
-		end
-		
-		for degree in quartet_blob_degree[2]
-			if degree == 2
-				quartet_num2blob += 1
-				global num2blob += 1
-			elseif degree == 3
-				quartet_num3blob += 1
-				global num3blob += 1
-			elseif degree == 4
-				quartet_num4blob += 1
-				global num4blob += 1
-			elseif degree == 5
-				quartet_num5blob += 1
-				global num5blob += 1
-			elseif degree == 6
-				quartet_num6blob += 1
-				global num6blob += 1
-			end
-		end
-
-		push!(num2cycle_col, quartet_num2cycle)
-		push!(num2blob_col, quartet_num2blob)
-		push!(num3blob_col, quartet_num3blob)
-		push!(num4blob_col, quartet_num4blob)
-		push!(num5blob_col, quartet_num5blob)
-		push!(num6blob_col, quartet_num6blob)
-
-		ns, qCF, hwc, df = quartettype_qCF(quartettree, ngt; seed=321, verbose=false)
-
-		push!(nsplit, ns)
-		push!(qCF_n, ngt)
-		push!(split1, qCF[1])
-		push!(split2, qCF[2])
-		push!(split3, qCF[3])
+	for j in nquartets
+		dft[j,2] = string(quartets[j])
+		dft[j,3:9] = analyzeQuartet(quartets[j])[1,1:7] # each quartet returns a DataFrame with one row and no sim_num
 	end
+
+	return(dft)
+
 end
 
-using DataFrames
-df = DataFrame(
-	sim_num=sim_num,
-	quartet_num=quartet_num,
-	num3blob_col=num3blob_col,
-	num4blob_col=num4blob_col,
-	nsplit=nsplit,
-	qCF_n=qCF_n,
-	split1=split1,
-	split2=split2,
-	split3=split3
-	)
-using CSV
+function analyzeQuartet(quartet)
+
+	dfq = DataFrame(
+		num3blob_col = -1,
+		num4blob_col = -1,
+		nsplit       = -1,
+		qCF_n        = -1,
+		split1       = -1,
+		split2       = -1,
+		split3       = -1
+		)
+
+	quartet_taxa = taxa[quartet]
+	notquartet_taxa = setdiff(taxa, quartet_taxa)
+	quartettree = deepcopy(tree)
+	for pruneit in notquartet_taxa
+		deleteleaf!(quartettree, pruneit, simplify=false, nofuse=false)
+	end
+	deleteaboveLSA!(quartettree)
+	
+	quartet_blob_degree = blob_degree(quartettree)
+
+	quartet_num3blob = 0
+	quartet_num4blob = 0
+	
+	for degree in quartet_blob_degree[2]
+		if degree == 3
+			quartet_num3blob += 1
+		elseif degree == 4
+			quartet_num4blob += 1
+		end
+	end
+
+	dfq[1,"num3blob_col"] = quartet_num3blob
+	dfq[1,"num4blob_col"] = quartet_num4blob
+
+	ns, qCF, hwc, df = quartettype_qCF(quartettree, ngt; seed=321, verbose=false)
+
+	dfq[1,"nsplit"] = ns
+	dfq[1,"qCF_n"] = ngt
+	dfq[1,"split1"] = qCF[1]
+	dfq[1,"split2"] = qCF[2]
+	dfq[1,"split3"] = qCF[3]
+
+	return(dfq)
+
+end
+
+for i in 1:N
+	dfts[i] = analyzeTreeFile(file::String)
+end
+
+df = dfts[1]
+
+for i in 2:N
+	df = vcat(df, dfts[i])
+end
+
 try
 	rm("quartets.csv")
 catch
