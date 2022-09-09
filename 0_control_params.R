@@ -17,7 +17,7 @@ d_0    =  c(0.1, 0.3, 0.6)*2 # forbid hybridizations between lineages more than 
 model  =  1                  # ssa = 0, gsa = 1.  see hartmann wong stadler 2010
 ngt    =  200                # number of gene trees per quartet
 
-julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia --threads 2" # sorry
+julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia --threads 8" # sorry
 R      = "Rscript"
 
 timeout = "5m" # let's do fast turnarounds
@@ -143,7 +143,7 @@ serial_job = function(i) {
 }
 
 
-numCores = 2
+numCores = 8
 results_parallel = mclapply(X=1:nrow(scenarios), FUN=parallel_job, mc.cores = numCores)
 results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job                     )
 
