@@ -158,10 +158,9 @@ for i in 1:N
 	dfts[i] = analyzeTreeFile(files[i], i)
 end
 
-bigdf = dfts[1]
-
+global bigdf = dfts[1]
 for i in 2:N
-	bigdf = vcat(bigdf, dfts[i])
+	global bigdf = vcat(bigdf, dfts[i])
 end
 
 try
@@ -169,7 +168,7 @@ try
 catch
 	nothing
 end
-CSV.write("quartets.csv", df)
+CSV.write("quartets.csv", bigdf)
 
 
 
