@@ -99,14 +99,14 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 
 	for j in nquartets
 		dft[j,2] = string(quartets[j])
-		dft[j,3:9] = analyzeQuartet(quartets[j])[1,1:7] # each quartet returns a DataFrame with one row and no sim_num
+		dft[j,3:9] = analyzeQuartet(quartets[j], taxa, tree)[1,1:7] # each quartet returns a DataFrame with one row and no sim_num
 	end
 
 	return(dft)
 
 end
 
-function analyzeQuartet(quartet)
+function analyzeQuartet(quartet, taxa, tree)
 
 	dfq = DataFrame(
 		num3blob_col = -1,
