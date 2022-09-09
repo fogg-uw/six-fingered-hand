@@ -21,7 +21,7 @@ julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
 R      = "Rscript"
 
 timeout = "20m"
-delete1 = TRUE # whether to simulate up to N+1 taxa, then delete 1 later
+delete1 = FALSE # whether to simulate up to N+1 taxa, then delete 1 later
 
 #on john's machine: julia = "/home/john/julia-1.7.3/bin/julia"
 
