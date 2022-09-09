@@ -26,8 +26,7 @@ If the network has a non-trivial cut-edge (and therefore no 4-degree blob),
 then this matrix has a single row, and describes the split of the cut-edge.
 
 Quartet CFs are estimated by simulating gene trees under the coalescent model
-using HybridLambda. Warning: HybridLambda seems to assume that the network is
-ultrametric.
+using [PhyloCoalSimulations](https://cecileane.github.io/PhyloCoalSimulations.jl/dev).
 
 output:
 - number of splits in the displayed trees.
@@ -52,20 +51,9 @@ julia> include("find_3blobqCF.jl")
 
 julia> net_3blob = readTopology("((B:0.6,((A:0.4,C:0.4):0.1)#H1:0.1::0.51):1.0,(#H1:0.1::0.49,O:0.6):1.0);");
 
-julia> ngenes = 10_000 # number of genes to be simulated
+julia> ngenes = 10_000; # number of genes to be simulated
 
-julia> outputdir = "hl_output";
-
-julia> ispath(outputdir) || mkdir(outputdir);
-
-julia> gt = joinpath(outputdir, "d3blob"); # this file will be created then deleted
-
-julia> ns, qCF, hwc, df = quartettype_qCF(net_3blob, gt, ngenes; seed=321, verbose=true);
-Default Kingman coalescent on all branches.
-Default population size of 10000 on all branches. 
-Random seed: 321
-Produced gene tree files: 
-hl_output/d3blob_coal_unit
+julia> ns, qCF, hwc, df = quartettype_qCF(net_3blob, ngenes; seed=321, verbose=true);
 Reading in trees, looking at 1 quartets in each...
 0+--------------------------------------------------+100%
   **************************************************
@@ -93,6 +81,8 @@ julia> n_alt1  = Int(round(qCF[:split2] * ngenes, digits=8));
 
 julia> n_alt2  = Int(round(qCF[:split3] * ngenes, digits=8));
 
+julia> using HypothesisTests
+
 julia> bt = BinomialTest(n_alt1, n_alt1 + n_alt2); # equal alternative CFs?
 
 julia> pvalue(bt) # the data are consistent with equal alternative CFs.
@@ -112,9 +102,7 @@ so they tell us the correct circular ordering.
 ```julia
 julia> net_4blob = readTopology("((((T:0.5)#H1:0.6::0.51,C:1.1):0.7,(#H1:0.0::0.49,E:0.5):1.3):1.0,O:2.8);");
 
-julia> gt = joinpath(outputdir, "d4blob");
-
-julia> ns, qCF, hwc, df = quartettype_qCF(net_4blob, gt, ngenes; seed=321, verbose=true);
+julia> ns, qCF, hwc, df = quartettype_qCF(net_4blob, ngenes; seed=321, verbose=false);
 
 julia> ns # 2 splits in the displayed trees: CT and ET based on hwc and df below
 2
@@ -155,7 +143,11 @@ function quartettype_qCF(net::HybridNetwork,
     taxonlist = sort(tipLabels(net))
     length(taxonlist) == 4 || error("there aren't 4 tips: $taxonlist")
     # collect splits appearing in any displayed tree
-    dtree = displayedTrees(net, 0.0)
+    # their splits only depend on their unrooted topologies, so simplify the network first
+    net2 = deepcopy(net) # keep 'net' intact for simulation below
+    PhyloNetworks.removedegree2nodes!(net2) # unroots the network, if degree-2 root
+    shrink3cycles!(net2, true) # true to unroot the network, e.g. if root is part of a 2- or 3-cycle
+    dtree = displayedTrees(net2, 0.0)
     mat = BitMatrix(undef, (0,4)) # initialize: 1 row per split
     for tree in dtree
         mat = vcat(mat, Bool.(hardwiredClusters(tree, taxonlist)[1:end,2:(end-1)]))
@@ -180,7 +172,7 @@ function quartettype_qCF(net::HybridNetwork,
 
     # otherwise: simulate gene trees!
     isnothing(seed) || Random.seed!(seed)
-    treelist = PhyloCoalSimulations.simulatecoalescent(net, nsim, 1)
+    treelist = simulatecoalescent(net, nsim, 1)
     obsCF, t = countquartetsintrees(treelist; showprogressbar=verbose)
 
     taxonlist == t || @error("different order of taxa used by countquartetsintrees (but maybe john's code will help)")
