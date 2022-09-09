@@ -155,7 +155,7 @@ function analyzeQuartet(quartet)
 end
 
 for i in 1:N
-	dfts[i] = analyzeTreeFile(file::String)
+	dfts[i] = analyzeTreeFile(files[i], i)
 end
 
 df = dfts[1]
