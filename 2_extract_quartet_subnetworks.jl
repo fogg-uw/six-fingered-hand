@@ -158,10 +158,10 @@ for i in 1:N
 	dfts[i] = analyzeTreeFile(files[i], i)
 end
 
-df = dfts[1]
+bigdf = dfts[1]
 
 for i in 2:N
-	df = vcat(df, dfts[i])
+	bigdf = vcat(bigdf, dfts[i])
 end
 
 try
