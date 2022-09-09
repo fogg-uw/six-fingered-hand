@@ -92,9 +92,9 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 		num4blob_col = repeat([-1], nquartets),
 		nsplit       = repeat([-1], nquartets),
 		qCF_n        = repeat([-1], nquartets),
-		split1       = repeat([-1], nquartets),
-		split2       = repeat([-1], nquartets),
-		split3       = repeat([-1], nquartets)
+		split1       = repeat([Float64(-1)], nquartets),
+		split2       = repeat([Float64(-1)], nquartets),
+		split3       = repeat([Float64(-1)], nquartets)
 	)
 
 	for j in nquartets
