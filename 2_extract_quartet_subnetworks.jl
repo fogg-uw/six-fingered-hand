@@ -113,9 +113,9 @@ function analyzeQuartet(quartet, taxa, tree)
 		num4blob_col = -1,
 		nsplit       = -1,
 		qCF_n        = -1,
-		split1       = -1,
-		split2       = -1,
-		split3       = -1
+		split1       = Float64(-1),
+		split2       = Float64(-1),
+		split3       = Float64(-1)
 		)
 
 	quartet_taxa = taxa[quartet]
