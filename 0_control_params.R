@@ -14,6 +14,7 @@ mu     =  c(0.1, 0.9)        # extinction rate, as a % of lambda
 nu     =    0.5              # hybridization rate, as as % of lambda
 MHY    =  c("M", "H")        # type of hybridization that is dominant
 d_0    =  c(0.1, 0.3, 0.6)*2 # forbid hybridizations between lineages more than this % of 1/lambda away
+model  =  1                  # ssa = 0, gsa = 1.  see hartmann wong stadler 2010
 ngt    =  200                # number of gene trees per quartet
 
 julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
@@ -50,6 +51,7 @@ scenarios = expand.grid(seed=seed,
                         nu=nu,
                         MHY=MHY, 
                         d_0=d_0,
+                        model=model,
                         ngt=ngt)
 
 scenarios$mu  = scenarios$mu  * scenarios$lambda # convert to CUs
@@ -61,7 +63,22 @@ scenarios$seed = min(scenarios$seed) - 1 + 1:nrow(scenarios)
 scenarios$M = 1/4 + (1/4)*as.numeric(scenarios$MHY=="M")
 scenarios$Y = 1/4 + (1/4)*as.numeric(scenarios$MHY=="Y")
 
-scenarios = scenarios[,c("seed", "nnet", "ntaxa", "lambda", "mu", "nu", "M", "Y", "d_0", "ngt")]
+scenarios =
+  scenarios[
+    ,
+    c("seed",
+      "nnet",
+      "ntaxa",
+      "lambda",
+      "mu",
+      "nu",
+      "M",
+      "Y",
+      "d_0",
+      "model",
+      "ngt"
+      )
+    ]
 
 ###
 
@@ -82,12 +99,12 @@ parallel_job = function(i) {
   setwd(jobdir)
   
   # parameters for siphynetwork
-  params1 = scenarios[i, 1:9]
+  params1 = scenarios[i, 1:10]
   if(delete1) params1["ntaxa"] = params1["ntaxa"] + 1
   params1 = paste(unlist(params1), collapse=" ")
   
   # parameters for phylocoalsimulations
-  params2 = scenarios[i, 10]
+  params2 = scenarios[i, 11]
   params2 = paste(unlist(params2), as.numeric(delete1), collapse=" ")
   
   command1 = paste("timeout", timeout, R,     script1, params1, sep=" ")
@@ -113,7 +130,7 @@ serial_job = function(i) {
   setwd(jobdir)
   
   # parameters for final summary
-  params3 = scenarios[i, 1:10]
+  params3 = scenarios[i, 1:11]
   params3 = as.numeric(params3)
   
 

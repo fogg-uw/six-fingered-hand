@@ -9,8 +9,9 @@ table_to_write = data.frame(
   nu     = args[06], # hybridization rate, in CUs
   M      = args[07], # proportion of hybridizations that are lineage generative 
   Y      = args[08], # proportion of hybridizations that are lineage degenerative
-  d_0    = args[09], # in [0,1]: lineages cannot hybridize if further apart than d_0 * lambda 
-  ngt    = args[10], # number of gene trees for phylocoalsims
+  d_0    = args[09], # in [0,1]: lineages cannot hybridize if further apart than d_0 * lambda
+  model  = args[10], # 0 = ssa, 1 = gsa
+  ngt    = args[11], # number of gene trees for phylocoalsims
   q = NA,
   A = NA,
   B = NA,

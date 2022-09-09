@@ -5,15 +5,16 @@
 args = commandArgs(trailingOnly=TRUE)
 args = as.numeric(args)
 
-seed   = args[1] # random seed
-nnet   = args[2] # number of networks to simulate
-ntaxa  = args[3] # for each simulation, stop when there are this many extant taxa
-lambda = args[4] # speciation rate, in CUs
-mu     = args[5] # extinction rate, in CUs
-nu     = args[6] # hybridization rate, in CUs
-M      = args[7] # proportion of hybridizations that are lineage generative 
-Y      = args[8] # proportion of hybridizations that are lineage degenerative
-d_0    = args[9] # lineages cannot hybridize if further apart than d_0
+seed   = args[01] # random seed
+nnet   = args[02] # number of networks to simulate
+ntaxa  = args[03] # for each simulation, stop when there are this many extant taxa
+lambda = args[04] # speciation rate, in CUs
+mu     = args[05] # extinction rate, in CUs
+nu     = args[06] # hybridization rate, in CUs
+M      = args[07] # proportion of hybridizations that are lineage generative 
+Y      = args[08] # proportion of hybridizations that are lineage degenerative
+d_0    = args[09] # lineages cannot hybridize if further apart than d_0
+model  = args[10] # 0 for ssa and 1 for gsa... see (e.g.) hartmann wong stadler 2010 for details
 
 ###
 
@@ -39,16 +40,32 @@ inheritance.fxn <- make.beta.draw(1,1) # beta(1,1) distribution (i.e. unif(0,1))
 ssa_nets_full = list()
 while(length(ssa_nets_full) < nnet) {
   numbsim = nnet - length(ssa_nets_full)
-  ssa_nets <- sim.bdh.taxa.ssa(
-    n             = ntaxa,
-    numbsim       = numbsim,
-    lambda        = lambda,
-    mu            = mu,
-    nu            = nu,
-    hybprops      = hybrid_proportions,
-    hyb.inher.fxn = inheritance.fxn,
-    complete      = FALSE # do not return extinct taxa
-  )
+  if(model==0) {
+    ssa_nets <- sim.bdh.taxa.ssa(
+      n             = ntaxa,
+      numbsim       = numbsim,
+      lambda        = lambda,
+      mu            = mu,
+      nu            = nu,
+      hybprops      = hybrid_proportions,
+      hyb.inher.fxn = inheritance.fxn,
+      complete      = FALSE # do not return extinct taxa
+    )
+  }
+  if(model==1) {
+    ssa_nets <- sim.bdh.taxa.gsa(
+      n             = ntaxa,
+      m             = ntaxa*2,
+      numbsim       = numbsim,
+      lambda        = lambda,
+      mu            = mu,
+      nu            = nu,
+      hybprops      = hybrid_proportions,
+      hyb.inher.fxn = inheritance.fxn,
+      complete      = FALSE # do not return extinct taxa
+    )
+  }
+
   isExtinct = sapply(X=ssa_nets, FUN = function(x) identical(x,0))
   extantNets = ssa_nets[!isExtinct]
   ssa_nets_full = c(ssa_nets_full, extantNets)
