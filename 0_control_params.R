@@ -21,7 +21,7 @@ ngt    =  200                # number of gene trees per quartet
 julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia --threads 16" # sorry
 R      = "Rscript"
 
-timeout = "26m" # i don't know if i've ever seen it work in a time > 13min but <20min
+timeout = "4h" # i don't know if i've ever seen it work in a time > 13min but <20min
 delete1 = FALSE # whether to simulate up to N+1 taxa, then delete 1 later
 
 #on john's machine: julia = "/home/john/julia-1.7.3/bin/julia"
@@ -39,7 +39,7 @@ delete1 = FALSE # whether to simulate up to N+1 taxa, then delete 1 later
 ###
 
 library(parallel)
-library(tictoc)
+library(tictoc, lib.loc=.libPaths()[1])
 
 ###
 
