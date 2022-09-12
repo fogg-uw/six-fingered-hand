@@ -145,14 +145,8 @@ function analyzeQuartet(quartet, taxa, tree)
 
 end
 
-Threads.@threads for j = 1:8 # use up to 8 cores
-	i = j
-	print(i)
-	while i <= N
-		dfts[i] = analyzeTreeFile(files[i], i)
-		i += 8
-		print(i)
-	end
+Threads.@threads for i = 1:N
+	dfts[i] = analyzeTreeFile(files[i], i)
 end
 
 global bigdf = dfts[1]
