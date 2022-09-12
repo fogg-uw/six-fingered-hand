@@ -17,10 +17,11 @@ d_0    =  c(0.1, 0.3, 0.6)*2 # forbid hybridizations between lineages more than 
 model  =  1                  # ssa = 0, gsa = 1.  see hartmann wong stadler 2010
 ngt    =  200                # number of gene trees per quartet
 
-julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia --threads 8" # sorry
+julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia" # sorry
+#julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia --threads 8" # sorry
 R      = "Rscript"
 
-timeout = "5m" # let's do fast turnarounds
+timeout = "13m" # i don't know if i've ever seen it work in a time > 13min but <20min
 delete1 = FALSE # whether to simulate up to N+1 taxa, then delete 1 later
 
 #on john's machine: julia = "/home/john/julia-1.7.3/bin/julia"
@@ -143,7 +144,7 @@ serial_job = function(i) {
 }
 
 
-numCores = 8
+numCores = 128
 results_parallel = mclapply(X=1:nrow(scenarios), FUN=parallel_job, mc.cores = numCores)
 results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job                     )
 
