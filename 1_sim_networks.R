@@ -23,6 +23,8 @@ library(ape)
 
 ###
 
+set.seed(seed)
+
 hybrid_proportions <-c(  M,      ##Lineage Generative
                            Y,    ##Lineage Degenerative
                         -M-Y+1 ) ##Lineage Neutral
