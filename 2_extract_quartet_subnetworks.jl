@@ -30,16 +30,6 @@ files = filter(x -> occursin(r"sim\d+\.tree", x), files)
 N = length(files)
 dfts = repeat([DataFrame()], N) # N data frames, one for each tree, later compressed into one data frame
 
-# analog to "zeros" function for strings
-
-blankstrings = function(N=1)
-	empty = String[]
-	for i in 1:N
-		push!(empty, "")
-	end
-	return(empty)
-end
-
 # "global" scalar variables (exist outside of trees; mostly for debugging)
 
 readTopologySuccess = zeros(Int8, N)
@@ -97,7 +87,7 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 		split3       = repeat([Float64(-1)], nquartets)
 	)
 
-	for j in nquartets
+	Threads.@threads for j = 1:nquartets
 		dft[j,2] = string(quartets[j])
 		dft[j,3:9] = analyzeQuartet(quartets[j], taxa, tree)[1,1:7] # each quartet returns a DataFrame with one row and no sim_num
 	end
