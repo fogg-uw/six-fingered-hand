@@ -18,7 +18,7 @@ model  =  1                  # ssa = 0, gsa = 1.  see hartmann wong stadler 2010
 ngt    =  200                # number of gene trees per quartet
 
 #julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia" # sorry
-julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia --threads 16" # sorry
+julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia --threads 128" # sorry
 R      = "Rscript"
 
 timeout = "4h" # i don't know if i've ever seen it work in a time > 13min but <20min
@@ -144,7 +144,7 @@ serial_job = function(i) {
 }
 
 
-numCores = 8
+numCores = 1
 results_parallel = mclapply(X=1:nrow(scenarios), FUN=parallel_job, mc.cores = numCores)
 results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job                     )
 
