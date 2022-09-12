@@ -88,6 +88,7 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 	)
 
 	Threads.@threads for j = 1:nquartets
+		print(treefile * string(quartets[j]) * '\n')
 		dft[j,2] = string(quartets[j])
 		dft[j,3:9] = analyzeQuartet(quartets[j], taxa, tree)[1,1:7] # each quartet returns a DataFrame with one row and no sim_num
 	end
@@ -97,8 +98,6 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 end
 
 function analyzeQuartet(quartet, taxa, tree)
-
-	print(string(quartet) * '\n')
 
 	dfq = DataFrame(
 		num3blob_col = -1,
