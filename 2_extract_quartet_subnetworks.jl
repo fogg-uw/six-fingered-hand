@@ -147,10 +147,12 @@ end
 
 i = 1:8
 Threads.@threads for j = 1:8 # use up to 8 cores
+	print(i[j])
 	i[j] = j
 	while i[j] <= length(files)
 		dfts[i] = analyzeTreeFile(files[i], i)
 		i[j] += 8
+		print(i[j])
 	end
 end
 
