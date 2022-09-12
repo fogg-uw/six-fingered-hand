@@ -145,7 +145,7 @@ function analyzeQuartet(quartet, taxa, tree)
 
 end
 
-Threads.@threads for i = 1:N
+for i = 1:N
 	dfts[i] = analyzeTreeFile(files[i], i)
 end
 
