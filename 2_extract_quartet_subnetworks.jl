@@ -37,7 +37,7 @@ readTopologyFailures = repeat("", N)
 
 function analyzeTreeFile(treefile::String, treenum::Int64)
 
-	print(treefile * '\n')
+	#print(treefile * '\n')
 
 	m = match(r"sim(\d+)\.tree", treefile)
 	sim_num = parse(Int16, m.captures[1])
@@ -98,7 +98,7 @@ end
 
 function analyzeQuartet(quartet, taxa, tree)
 
-	print(string(quartet) * '\n')
+	#print(string(quartet) * '\n')
 
 	dfq = DataFrame(
 		num3blob_col = -1,
