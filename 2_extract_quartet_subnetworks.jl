@@ -33,7 +33,7 @@ dfts = repeat([DataFrame()], N) # N data frames, one for each tree, later compre
 # "global" scalar variables (exist outside of trees; mostly for debugging)
 
 readTopologySuccess = zeros(Int8, N)
-readTopologyFailures = blankstrings(N)
+readTopologyFailures = repeat("", N)
 
 function analyzeTreeFile(treefile::String, treenum::Int64)
 
