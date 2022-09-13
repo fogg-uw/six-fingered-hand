@@ -17,7 +17,8 @@ using PhyloCoalSimulations
 using DataFrames
 
 """
-    quartettype_qCF(net, nsim=200; seed=nothing, verbose=true)
+    quartettype_qCF(net, nsim=200; seed=nothing, verbose=true,
+                      threshold_h=nothing, threshold_gamma=0.1)
 
 Calculate the quartet type of quartet concordance factors (CFs) of a
 4-taxon network. The quartet type is described by a matrix with 1 row
@@ -43,6 +44,17 @@ output:
   order as in the data frame
 - data frame with a single row, containing the 4 taxon labels and
   the 3 estimated quartet CFs.
+
+# warning
+
+The function can take a long time if the network has many reticulations.
+An approximation can be used: set argument `threshold_h` to some integer
+(e.g. 15). Then, if h>15, all hybrid edges with γ<`threshold_gamma` are deleted.
+If 3 splits are found, then the full network must also have 3 splits
+(there cannot be more!). If 1 or 2 splits are found only, then the full network
+does have this/these split(s), but may have more. In that case, you may want
+to re-run the function with the default `threshold_h=nothing` to be 100% sure
+about the splits in the displayed trees.
 
 # examples
 
@@ -138,7 +150,8 @@ julia> pvalue(BinomialTest(n_cf2, n_cf2 + n_minor), tail=:left) # also with CF2 
 ```
 """
 function quartettype_qCF(net::HybridNetwork, 
-        nsim=200; seed=nothing, verbose=true)
+        nsim=200; seed=nothing, verbose=true,
+        threshold_h=nothing, threshold_gamma=0.10)
 
     taxonlist = sort(tipLabels(net))
     length(taxonlist) == 4 || error("there aren't 4 tips: $taxonlist")
@@ -147,24 +160,26 @@ function quartettype_qCF(net::HybridNetwork,
     net2 = deepcopy(net) # keep 'net' intact for simulation below
     PhyloNetworks.removedegree2nodes!(net2) # unroots the network, if degree-2 root
     shrink3cycles!(net2, true) # true to unroot the network, e.g. if root is part of a 2- or 3-cycle
+    h_true = net2.numHybrids
+    h_used = h_true
+    if !isnothing(threshold_h) && h_true > threshold_h
+      # then delete reticulations with "small" γ
+      deleteHybridThreshold!(net2, threshold_gamma, false, true)
+      PhyloNetworks.removedegree2nodes!(net2)
+      shrink3cycles!(net2, true)
+      h_used = net2.numHybrids
+      @info "hybrid edges with γ<$threshold_gamma were deleted. h went from $h_true to $h_used."
+    end
     dtree = displayedTrees(net2, 0.0)
     mat = BitMatrix(undef, (0,4)) # initialize: 1 row per split
     for tree in dtree
-        mat = vcat(mat, Bool.(hardwiredClusters(tree, taxonlist)[1:end,2:(end-1)]))
-    end
-    # keep non-trivial splits that partition the 4 taxa in 2 vs 2
-    mat = mat[ sum(mat, dims=2)[:,1] .== 2 ,:]
-    # remove duplicate rows, from nodes with the same hardwired clusters
-    tokeep = Bool.(ones(size(mat,1)))
-    for i in 1:size(mat,1)
-        for j in 1:(i-1) # consider unrooted splits
-            if mat[i,:] == mat[j,:] || mat[i,:] == .!mat[j,:]
-                tokeep[i] = false
-                break
-            end
+        split = treesplit(tree, taxonlist)
+        oldsplit = any( x-> isequal_split(split, x), eachrow(mat))
+        if !oldsplit
+          mat = [mat; split']
         end
+        size(mat,1) >= 3 && break
     end
-    mat = mat[tokeep,:]
     nsplits = size(mat,1)
 
     # if 3 splits, no qCFs can be anomalous, so need to simulate gene trees:
@@ -223,6 +238,22 @@ function quartettype_qCF(net::HybridNetwork,
     st3 = setdiff(0:2, [st1,st2])[1]
     o = splitsymbol.([st1,st2,st3])
     return nsplits, (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]]), mat, df
+end
+
+isequal_split(x, y) = x == y || x == .!y
+
+"""
+    treesplit(tree::HybridNetwork, taxa)
+
+BitVector representing the split in `tree`. Assumption *not* checked:
+`tree` is a tree, it has 4 taxa, it is resolved (not a star polytomy).
+"""
+function treesplit(tree::HybridNetwork, taxa)
+  mat = Bool.(hardwiredClusters(tree, taxa)[1:end,2:(end-1)])
+  # find first non-trivial split that partitions the 4 taxa in 2 vs 2
+  tokeep = findfirst( x -> sum(x) == 2, eachrow(mat))
+  isnothing(tokeep) && error("none of the clades have 2 taxa")
+  return(mat[tokeep,:])
 end
 
 """
