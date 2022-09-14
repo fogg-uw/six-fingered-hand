@@ -163,12 +163,16 @@ function quartettype_qCF(net::HybridNetwork,
     h_true = net2.numHybrids
     h_used = h_true
     if !isnothing(threshold_h) && h_true > threshold_h
-      # then delete reticulations with "small" γ
-      deleteHybridThreshold!(net2, threshold_gamma, false, true)
-      PhyloNetworks.removedegree2nodes!(net2)
-      shrink3cycles!(net2, true)
-      h_used = net2.numHybrids
-      @info "hybrid edges with γ<$threshold_gamma were deleted. h went from $h_true to $h_used."
+      # then delete reticulations with "small" γ: not the best choice though
+      # deleteHybridThreshold!(net2, threshold_gamma, false, true)
+      @info "h=$h_true, will delete early minor hybrid edges"
+      while h_used > threshold_h
+        hnum = deleteearlyminorhybrid!(net2)
+        PhyloNetworks.removedegree2nodes!(net2)
+        shrink3cycles!(net2, true)
+        h_used = net2.numHybrids
+        @info "hybrid edge $hnum deleted. h=$h_used after shrinking small cycles."
+      end
     end
     dtree = displayedTrees(net2, 0.0)
     mat = BitMatrix(undef, (0,4)) # initialize: 1 row per split
@@ -254,6 +258,25 @@ function treesplit(tree::HybridNetwork, taxa)
   tokeep = findfirst( x -> sum(x) == 2, eachrow(mat))
   isnothing(tokeep) && error("none of the clades have 2 taxa")
   return(mat[tokeep,:])
+end
+
+"""
+    deleteearlyminorhybrid(net)
+
+Delete the minor hybrid parent edge of the earliest hybrid node.
+Assumptions *not* checked: `net` has edge lengths, and is time-consistent.
+Output: number of the hybrid edge that was deleted (which no longer exists).
+"""
+function deleteearlyminorhybrid!(net::HybridNetwork)
+  heights = PhyloNetworks.getHeights(net) # runs preorder! by default, good Here
+  hyb_idx = findall(n -> n.hybrid, net.nodes_changed)
+  hyb_age = heights[hyb_idx] # distance from the root
+  @show [node.number => (heights[i], node.name) for (i,node) in enumerate(net.nodes_changed[hyb_idx])]
+  hyb_node = net.nodes_changed[hyb_idx[argmin(hyb_age)]]
+  hyb_edge = PhyloNetworks.getMinorParentEdge(hyb_node)
+  hyb_num = hyb_edge.number
+  PhyloNetworks.deletehybridedge!(net, hyb_edge, false, true)
+  return hyb_num
 end
 
 """
