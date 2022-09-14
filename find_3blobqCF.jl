@@ -18,7 +18,7 @@ using DataFrames
 
 """
     quartettype_qCF(net, nsim=200; seed=nothing, verbose=true,
-                      threshold_h=nothing, threshold_gamma=0.1)
+                      threshold_h=nothing)
 
 Calculate the quartet type of quartet concordance factors (CFs) of a
 4-taxon network. The quartet type is described by a matrix with 1 row
@@ -30,7 +30,7 @@ Quartet CFs are estimated by simulating gene trees under the coalescent model
 using [PhyloCoalSimulations](https://cecileane.github.io/PhyloCoalSimulations.jl/dev).
 
 output:
-- number of splits in the displayed trees.
+- class: number of splits in the displayed trees.
   If there is only 1 split, then the network contains a non-trivial cut-edge
   (based on proof in "tree of blobs" Allman et al. 2022 preprint).
   If there are 2 or more splits, then the semidirected network contains a 4-blob.
@@ -44,12 +44,16 @@ output:
   order as in the data frame
 - data frame with a single row, containing the 4 taxon labels and
   the 3 estimated quartet CFs.
+- flag: true if minor hybrid edges near the root were discarded to speed up the
+  class calculation. Some displayed splits may be missing, and the true class
+  may be greater than the output class (first item).
 
 # warning
 
 The function can take a long time if the network has many reticulations.
 An approximation can be used: set argument `threshold_h` to some integer
-(e.g. 15). Then, if h>15, all hybrid edges with γ<`threshold_gamma` are deleted.
+(e.g. 15). Then, if h>15, minor hybrid edges are deleted (starting from those
+closest to the root) until h<=15.
 If 3 splits are found, then the full network must also have 3 splits
 (there cannot be more!). If 1 or 2 splits are found only, then the full network
 does have this/these split(s), but may have more. In that case, you may want
@@ -65,7 +69,7 @@ julia> net_3blob = readTopology("((B:0.6,((A:0.4,C:0.4):0.1)#H1:0.1::0.51):1.0,(
 
 julia> ngenes = 10_000; # number of genes to be simulated
 
-julia> ns, qCF, hwc, df = quartettype_qCF(net_3blob, ngenes; seed=321, verbose=true);
+julia> ns, qCF, hwc, df, flag = quartettype_qCF(net_3blob, ngenes; seed=321, verbose=true);
 Reading in trees, looking at 1 quartets in each...
 0+--------------------------------------------------+100%
   **************************************************
@@ -78,14 +82,14 @@ julia> df
  Row │ t1      t2      t3      t4      CF12_34  CF13_24  CF14_23  ngenes  
      │ String  String  String  String  Float64  Float64  Float64  Float64 
 ─────┼────────────────────────────────────────────────────────────────────
-   1 │ A       B       C       O        0.3521   0.2904   0.3575  10000.0
+   1 │ A       B       C       O        0.3459   0.2954   0.3587  10000.0
 
 julia> hwc # hardwired clusters, 4 taxa in same order as t1-t4 in data frame above
 1×4 BitMatrix:
  1  0  1  0
 
 julia> qCF # order corresponding to 1st split in hwc matrix
-(major = 0.2904, alt1 = 0.3521, alt2 = 0.3575)
+(split1 = 0.2954, split2 = 0.3587, split3 = 0.3459)
 
 julia> n_major = Int(round(qCF[:split1] * ngenes, digits=8));
 
@@ -98,12 +102,12 @@ julia> using HypothesisTests
 julia> bt = BinomialTest(n_alt1, n_alt1 + n_alt2); # equal alternative CFs?
 
 julia> pvalue(bt) # the data are consistent with equal alternative CFs.
-0.5292396850392722
+0.1302795750013259
 
 julia> bt = BinomialTest(n_major, ngenes, 1/3); # is CF_major < 1/3?
 
 julia> pvalue(bt, tail=:left) # reject: so this is a pathological network
-3.492803208145045e-20
+2.377765063361621e-16
 ```
 
 Here is another example where the network has a 4-degree blob, and is outerplanar.
@@ -114,7 +118,7 @@ so they tell us the correct circular ordering.
 ```julia
 julia> net_4blob = readTopology("((((T:0.5)#H1:0.6::0.51,C:1.1):0.7,(#H1:0.0::0.49,E:0.5):1.3):1.0,O:2.8);");
 
-julia> ns, qCF, hwc, df = quartettype_qCF(net_4blob, ngenes; seed=321, verbose=false);
+julia> ns, qCF, hwc, df, flag = quartettype_qCF(net_4blob, ngenes; seed=321, verbose=false);
 
 julia> ns # 2 splits in the displayed trees: CT and ET based on hwc and df below
 2
@@ -129,10 +133,10 @@ julia> df
  Row │ t1      t2      t3      t4      CF12_34  CF13_24  CF14_23  ngenes  
      │ String  String  String  String  Float64  Float64  Float64  Float64 
 ─────┼────────────────────────────────────────────────────────────────────
-   1 │ C       E       O       T        0.1276   0.4831   0.3893  10000.0
+   1 │ C       E       O       T        0.1276   0.4882   0.3842  10000.0
 
 julia> qCF
-(split1 = 0.3893, split2 = 0.4831, split3 = 0.1276)
+(split1 = 0.3842, split2 = 0.4882, split3 = 0.1276)
 
 julia> n_cf1    = Int(round(qCF[:split1] * ngenes, digits=8));
 
@@ -171,9 +175,10 @@ function quartettype_qCF(net::HybridNetwork,
         PhyloNetworks.removedegree2nodes!(net2)
         shrink3cycles!(net2, true)
         h_used = net2.numHybrids
-        @info "hybrid edge $hnum deleted. h=$h_used after shrinking small cycles."
+        # @info "hybrid edge $hnum deleted. h=$h_used after shrinking small cycles."
       end
     end
+    flag_class = (h_true != h_used)
     dtree = displayedTrees(net2, 0.0)
     mat = BitMatrix(undef, (0,4)) # initialize: 1 row per split
     for tree in dtree
@@ -187,7 +192,8 @@ function quartettype_qCF(net::HybridNetwork,
     nsplits = size(mat,1)
 
     # if 3 splits, no qCFs can be anomalous, so need to simulate gene trees:
-    nsplits == 3 && return nsplits, (split1=-1, split2=-1, split3=-1), mat, DataFrame()
+    #              and even if flag_class is true, class 3 is in fact correct
+    nsplits == 3 && return nsplits, (split1=-1, split2=-1, split3=-1), mat, DataFrame(), false
 
     # otherwise: simulate gene trees!
     isnothing(seed) || Random.seed!(seed)
@@ -241,7 +247,7 @@ function quartettype_qCF(net::HybridNetwork,
     st2 = (nsplits > 1 ? splittype(mat[2,:]) : mod(st1+1,3))
     st3 = setdiff(0:2, [st1,st2])[1]
     o = splitsymbol.([st1,st2,st3])
-    return nsplits, (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]]), mat, df
+    return nsplits, (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]]), mat, df, flag_class
 end
 
 isequal_split(x, y) = x == y || x == .!y
@@ -269,11 +275,9 @@ Output: number of the hybrid edge that was deleted (which no longer exists).
 """
 function deleteearlyminorhybrid!(net::HybridNetwork)
   heights = PhyloNetworks.getHeights(net) # runs preorder! by default, good Here
-  hyb_idx = findall(n -> n.hybrid, net.nodes_changed)
-  hyb_age = heights[hyb_idx] # distance from the root
-  @show [node.number => (heights[i], node.name) for (i,node) in enumerate(net.nodes_changed[hyb_idx])]
-  hyb_node = net.nodes_changed[hyb_idx[argmin(hyb_age)]]
-  hyb_edge = PhyloNetworks.getMinorParentEdge(hyb_node)
+  hyb_idx = findfirst(n -> n.hybrid, net.nodes_changed)
+  isnothing(hyb_idx) && error("no hybrid: can't delete an early hybrid edge")
+  hyb_edge = PhyloNetworks.getMinorParentEdge(net.nodes_changed[hyb_idx])
   hyb_num = hyb_edge.number
   PhyloNetworks.deletehybridedge!(net, hyb_edge, false, true)
   return hyb_num
