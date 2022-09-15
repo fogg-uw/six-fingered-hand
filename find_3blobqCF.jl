@@ -179,7 +179,10 @@ function quartettype_qCF(net::HybridNetwork,
       end
     end
     flag_class = (h_true != h_used)
-    dtree = displayedTrees(net2, 0.0)
+    # below: easy, but too slow and too memory-hungry for what we need.
+    # dtree = displayedTrees(net2, 0.0)
+    # instead: custom function to extract unrooted displayed tree topologies
+    dtree = displayed_unrootedtreetopologies!(net2)
     mat = BitMatrix(undef, (0,4)) # initialize: 1 row per split
     for tree in dtree
         split = treesplit(tree, taxonlist)
@@ -281,6 +284,36 @@ function deleteearlyminorhybrid!(net::HybridNetwork)
   hyb_num = hyb_edge.number
   PhyloNetworks.deletehybridedge!(net, hyb_edge, false, true)
   return hyb_num
+end
+
+"""
+    displayed_unrootedtreetopologies!(net)
+
+Vector of all unrooted tree topologies displayed in the network.
+Some may be repeated. Their edge lengths and root should be ignored.
+Compared to the output of `displayedTrees`, some displayed trees with the same
+unrooted topologies, but differ in their root or edge lengths could be
+represented only once in the output of `displayed_unrootedtreetopologies!`.
+"""
+function displayed_unrootedtreetopologies!(net)
+  trees = HybridNetwork[]
+  displayed_unrootedtreetopologies!(trees, net)
+end
+function displayed_unrootedtreetopologies!(trees, net)
+  if net.numHybrids==0
+    # warning: no update of edges' containRoot (true) or edges' and nodes' inCycle (-1)
+    push!(trees, net)
+  else
+    netmin = PhyloNetworks.displayedNetworks!(net, net.hybrid[1], false, true, false, false)
+    PhyloNetworks.removedegree2nodes!(netmin) # in case degree-2 root
+    PhyloNetworks.removedegree2nodes!(net)
+    deleteaboveLSA!(netmin)
+    deleteaboveLSA!(net)
+    shrink3cycles!(netmin, true)
+    shrink3cycles!(net, true)
+    displayed_unrootedtreetopologies!(trees, net)
+    displayed_unrootedtreetopologies!(trees, netmin)
+  end
 end
 
 """
