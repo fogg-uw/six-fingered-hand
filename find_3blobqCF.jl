@@ -162,18 +162,14 @@ function quartettype_qCF(net::HybridNetwork,
     # collect splits appearing in any displayed tree
     # their splits only depend on their unrooted topologies, so simplify the network first
     net2 = deepcopy(net) # keep 'net' intact for simulation below
-    PhyloNetworks.removedegree2nodes!(net2) # unroots the network, if degree-2 root
-    shrink3cycles!(net2, true) # true to unroot the network, e.g. if root is part of a 2- or 3-cycle
+    unroot_shrink!(net2)
     h_true = net2.numHybrids
     h_used = h_true
     if !isnothing(threshold_h) && h_true > threshold_h
-      # then delete reticulations with "small" γ: not the best choice though
-      # deleteHybridThreshold!(net2, threshold_gamma, false, true)
       @info "h=$h_true, will delete early minor hybrid edges"
       while h_used > threshold_h
         hnum = deleteearlyminorhybrid!(net2)
-        PhyloNetworks.removedegree2nodes!(net2)
-        shrink3cycles!(net2, true)
+        unroot_shrink!(net2)
         h_used = net2.numHybrids
         # @info "hybrid edge $hnum deleted. h=$h_used after shrinking small cycles."
       end
@@ -270,6 +266,27 @@ function treesplit(tree::HybridNetwork, taxa)
 end
 
 """
+    unroot_shrink!(net)
+
+1. remove what's above the LSA
+2. unroot the network (for a degree-3 root), then
+3. shrink small cycles (of degree 2 or 3).
+"""
+function unroot_shrink!(net::HybridNetwork)
+  deleteaboveLSA!(net)
+  rootedges = net.node[net.root].edge
+  if length(rootedges) == 2
+    if all(e.hybrid for e in rootedges) # should never happen
+      # fuseedgesat! (and removedegree2nodes!) would truly error in this case
+      @error "after deleting things above the LSA, the root is still connected to 2 hybrid edges..."
+    else
+      PhyloNetworks.fuseedgesat!(net.root, net)
+    end
+  end
+  shrink3cycles!(net, true) # true: to unroot the network
+end
+
+"""
     deleteearlyminorhybrid(net)
 
 Delete the minor hybrid parent edge of the earliest hybrid node.
@@ -305,12 +322,8 @@ function displayed_unrootedtreetopologies!(trees, net)
     push!(trees, net)
   else
     netmin = PhyloNetworks.displayedNetworks!(net, net.hybrid[1], false, true, false, false)
-    PhyloNetworks.removedegree2nodes!(netmin) # in case degree-2 root
-    PhyloNetworks.removedegree2nodes!(net)
-    deleteaboveLSA!(netmin)
-    deleteaboveLSA!(net)
-    shrink3cycles!(netmin, true)
-    shrink3cycles!(net, true)
+    unroot_shrink!(netmin)
+    unroot_shrink!(net)
     displayed_unrootedtreetopologies!(trees, net)
     displayed_unrootedtreetopologies!(trees, netmin)
   end
