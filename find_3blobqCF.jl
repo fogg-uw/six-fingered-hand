@@ -15,10 +15,12 @@ using Random
 using PhyloNetworks
 using PhyloCoalSimulations
 using DataFrames
+include("find_blobs_and_degree.jl")
 
 """
     quartettype_qCF(net, nsim=200; seed=nothing, verbose=true,
-                      threshold_h=nothing)
+                      threshold_h = Inf,
+                      blob_degrees = nothing)
 
 Calculate the quartet type of quartet concordance factors (CFs) of a
 4-taxon network. The quartet type is described by a matrix with 1 row
@@ -155,40 +157,68 @@ julia> pvalue(BinomialTest(n_cf2, n_cf2 + n_minor), tail=:left) # also with CF2 
 """
 function quartettype_qCF(net::HybridNetwork, 
         nsim=200; seed=nothing, verbose=true,
-        threshold_h=nothing, threshold_gamma=0.10)
+        threshold_h=Inf, blob_degrees=nothing)
 
     taxonlist = sort(tipLabels(net))
     length(taxonlist) == 4 || error("there aren't 4 tips: $taxonlist")
-    # collect splits appearing in any displayed tree
+    if isnothing(blob_degrees)
+      blob_degrees = blob_degree(net) # defined in find_blobs_and_degree.jl
+    end
+    bcc     = blob_degrees[1]
+    bdegree = blob_degrees[2]
+    if all(bdegree < 4)
+    # if the network doesn't have any 4-blob, then it's of class 1:
+    # extract hardwired clusters, and determine if there's a 3_2 blob
+      is32blob = false
+      blobexit = PhyloNetworks.biconnectedcomponent_exitnodes(net, bcc, false)
+      for i in eachindex(bcc)
+        bdegree[i] == 3 || continue # skip 2-blobs
+        for hn in blobexit[i]
+          hn.hybrid || continue # skip tree nodes
+          des = PhyloNetworks.descendants(PhyloNetworks.getMajorParentEdge(hn))
+          if length(des) == 2
+            is32blob = true
+            break # don't look at other exit nodes
+          end
+        end
+      end
+      # fixit: calculate 'mat'. get the one split from hardwired clusters
+      nsplits = 1
+      flag_class = false
+    else
+    # if the network has a 4-blob: collect splits appearing in any displayed tree
     # their splits only depend on their unrooted topologies, so simplify the network first
-    net2 = deepcopy(net) # keep 'net' intact for simulation below
-    unroot_shrink!(net2)
-    h_true = net2.numHybrids
-    h_used = h_true
-    if !isnothing(threshold_h) && h_true > threshold_h
-      @info "h=$h_true, will delete early minor hybrid edges"
-      while h_used > threshold_h
-        hnum = deleteearlyminorhybrid!(net2)
-        unroot_shrink!(net2)
-        h_used = net2.numHybrids
-        # @info "hybrid edge $hnum deleted. h=$h_used after shrinking small cycles."
+      net2 = deepcopy(net) # keep 'net' intact for simulation below
+      unroot_shrink!(net2)
+      h_true = net2.numHybrids
+      h_used = h_true
+      if h_true > threshold_h
+        @info "h=$h_true, will delete early minor hybrid edges"
+        while h_used > threshold_h
+          hnum = deleteearlyminorhybrid!(net2)
+          unroot_shrink!(net2)
+          h_used = net2.numHybrids
+          # @info "hybrid edge $hnum deleted. h=$h_used after shrinking small cycles."
+        end
+      end
+      flag_class = (h_true != h_used)
+      # custom function to extract unrooted displayed tree topologies
+      dtree = displayed_unrootedtreetopologies!(net2)
+      mat = BitMatrix(undef, (0,4)) # initialize: 1 row per split
+      for tree in dtree
+          split = treesplit(tree, taxonlist)
+          oldsplit = any( x-> isequal_split(split, x), eachrow(mat))
+          if !oldsplit
+            mat = [mat; split']
+          end
+          size(mat,1) >= 3 && break
+      end
+      nsplits = size(mat,1)
+      if nsplits == 1
+        flag_class || @error "found only 1 split on network with a 4-blob, yet no underestimation. ???"
+        @error "found only 1 split on 4-blob: flag is true and there's an underestimation for sure"
       end
     end
-    flag_class = (h_true != h_used)
-    # below: easy, but too slow and too memory-hungry for what we need.
-    # dtree = displayedTrees(net2, 0.0)
-    # instead: custom function to extract unrooted displayed tree topologies
-    dtree = displayed_unrootedtreetopologies!(net2)
-    mat = BitMatrix(undef, (0,4)) # initialize: 1 row per split
-    for tree in dtree
-        split = treesplit(tree, taxonlist)
-        oldsplit = any( x-> isequal_split(split, x), eachrow(mat))
-        if !oldsplit
-          mat = [mat; split']
-        end
-        size(mat,1) >= 3 && break
-    end
-    nsplits = size(mat,1)
 
     # if 3 splits, no qCFs can be anomalous, so need to simulate gene trees:
     #              and even if flag_class is true, class 3 is in fact correct

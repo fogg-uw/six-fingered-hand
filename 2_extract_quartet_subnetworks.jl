@@ -133,7 +133,8 @@ function analyzeQuartet(quartet, taxa, tree)
 	dfq[1,"num3blob_col"] = quartet_num3blob
 	dfq[1,"num4blob_col"] = quartet_num4blob
 
-	ns, qCF, hwc, df = quartettype_qCF(quartettree, ngt; seed=321, verbose=false)
+	ns, qCF, _ = quartettype_qCF(quartettree, ngt; seed=321, verbose=false,
+	                             blob_degrees=quartet_blob_degree)
 
 	dfq[1,"nsplit"] = ns
 	dfq[1,"qCF_n"] = ngt
