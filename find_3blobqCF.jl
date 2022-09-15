@@ -166,10 +166,11 @@ function quartettype_qCF(net::HybridNetwork,
     end
     bcc     = blob_degrees[1]
     bdegree = blob_degrees[2]
-    if all(bdegree < 4)
+    is32blob = false
+    flag_class = false
+    if all(bdegree .< 4)
     # if the network doesn't have any 4-blob, then it's of class 1:
     # extract hardwired clusters, and determine if there's a 3_2 blob
-      is32blob = false
       blobexit = PhyloNetworks.biconnectedcomponent_exitnodes(net, bcc, false)
       for i in eachindex(bcc)
         bdegree[i] == 3 || continue # skip 2-blobs
@@ -182,9 +183,18 @@ function quartettype_qCF(net::HybridNetwork,
           end
         end
       end
-      # fixit: calculate 'mat'. get the one split from hardwired clusters
+      # get the one split from hardwired clusters
       nsplits = 1
-      flag_class = false
+      mat = Bool.(hardwiredClusters(net, taxonlist)[1:end,2:(end-1)])
+      # find splits that partition the 4 taxa in 2 vs 2
+      tokeep = findall( x -> sum(x) == 2, eachrow(mat))
+      # if there are several, check they all code for the same split
+      length(tokeep)>0 || error("didn't find any 2+2 split in net without 4-blob")
+      for i in 2:length(tokeep)
+        isequal_split(mat[tokeep[1],:], mat[tokeep[i],:]) ||
+          error("several distinct 2+2 splits in net without 4-blob")
+      end
+      mat = mat[[tokeep[1]],:]
     else
     # if the network has a 4-blob: collect splits appearing in any displayed tree
     # their splits only depend on their unrooted topologies, so simplify the network first
@@ -276,7 +286,7 @@ function quartettype_qCF(net::HybridNetwork,
     st2 = (nsplits > 1 ? splittype(mat[2,:]) : mod(st1+1,3))
     st3 = setdiff(0:2, [st1,st2])[1]
     o = splitsymbol.([st1,st2,st3])
-    return nsplits, (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]]), mat, df, flag_class
+    return nsplits, (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]]), mat, df, is32blob, flag_class
 end
 
 isequal_split(x, y) = x == y || x == .!y

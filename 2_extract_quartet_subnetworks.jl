@@ -84,20 +84,22 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 		qCF_n        = repeat([-1], nquartets),
 		split1       = repeat([Float64(-1)], nquartets),
 		split2       = repeat([Float64(-1)], nquartets),
-		split3       = repeat([Float64(-1)], nquartets)
+		split3       = repeat([Float64(-1)], nquartets),
+		is32blob     = zeros(Bool, nquartets), # is there a 3_2 blob?
+		flag_class   = zeros(Bool, nquartets), # is the class be perhaps underestimated?
 	)
 
 	Threads.@threads for j = 1:nquartets
 		print(treefile * string(quartets[j]) * '\n')
 		dft[j,2] = string(quartets[j])
-		dft[j,3:9] = analyzeQuartet(quartets[j], taxa, tree)[1,1:7] # each quartet returns a DataFrame with one row and no sim_num
+		dft[j,3:end] = analyzeQuartet(quartets[j], taxa, tree)[1,:] # each quartet returns a DataFrame with one row and no sim_num
 	end
 
 	return(dft)
 
 end
 
-function analyzeQuartet(quartet, taxa, tree)
+function analyzeQuartet(quartet, taxa, tree; seed=nothing)
 
 	dfq = DataFrame(
 		num3blob_col = -1,
@@ -106,7 +108,9 @@ function analyzeQuartet(quartet, taxa, tree)
 		qCF_n        = -1,
 		split1       = Float64(-1),
 		split2       = Float64(-1),
-		split3       = Float64(-1)
+		split3       = Float64(-1),
+		is32blob   = false,
+		flag_class = false,
 		)
 
 	quartet_taxa = taxa[quartet]
@@ -133,14 +137,16 @@ function analyzeQuartet(quartet, taxa, tree)
 	dfq[1,"num3blob_col"] = quartet_num3blob
 	dfq[1,"num4blob_col"] = quartet_num4blob
 
-	ns, qCF, _ = quartettype_qCF(quartettree, ngt; seed=321, verbose=false,
-	                             blob_degrees=quartet_blob_degree)
+	ns, qCF, _, _, is32blob, flag = quartettype_qCF(quartettree, ngt;
+	    verbose=false, blob_degrees=quartet_blob_degree, seed=seed)
 
 	dfq[1,"nsplit"] = ns
 	dfq[1,"qCF_n"] = ngt
 	dfq[1,"split1"] = qCF[1]
 	dfq[1,"split2"] = qCF[2]
 	dfq[1,"split3"] = qCF[3]
+	dfq[1,:is32blob]   = is32blob
+	dfq[1,:flag_class] = flag
 
 	return(dfq)
 
