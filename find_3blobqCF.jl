@@ -71,7 +71,7 @@ julia> net_3blob = readTopology("((B:0.6,((A:0.4,C:0.4):0.1)#H1:0.1::0.51):1.0,(
 
 julia> ngenes = 10_000; # number of genes to be simulated
 
-julia> ns, qCF, hwc, df, flag = quartettype_qCF(net_3blob, ngenes; seed=321, verbose=true);
+julia> ns, qCF, hwc, df, is32blob, flag = quartettype_qCF(net_3blob, ngenes; seed=321, verbose=true);
 Reading in trees, looking at 1 quartets in each...
 0+--------------------------------------------------+100%
   **************************************************
@@ -120,7 +120,7 @@ so they tell us the correct circular ordering.
 ```julia
 julia> net_4blob = readTopology("((((T:0.5)#H1:0.6::0.51,C:1.1):0.7,(#H1:0.0::0.49,E:0.5):1.3):1.0,O:2.8);");
 
-julia> ns, qCF, hwc, df, flag = quartettype_qCF(net_4blob, ngenes; seed=321, verbose=false);
+julia> ns, qCF, hwc, df, is32blob, flag = quartettype_qCF(net_4blob, ngenes; seed=321, verbose=false);
 
 julia> ns # 2 splits in the displayed trees: CT and ET based on hwc and df below
 2
@@ -232,7 +232,7 @@ function quartettype_qCF(net::HybridNetwork,
 
     # if 3 splits, no qCFs can be anomalous, so need to simulate gene trees:
     #              and even if flag_class is true, class 3 is in fact correct
-    nsplits == 3 && return nsplits, (split1=-1, split2=-1, split3=-1), mat, DataFrame(), false
+    nsplits == 3 && return nsplits, (split1=-1, split2=-1, split3=-1), mat, DataFrame(), false, false
 
     # otherwise: simulate gene trees!
     isnothing(seed) || Random.seed!(seed)

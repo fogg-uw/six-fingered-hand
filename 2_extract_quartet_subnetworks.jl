@@ -1,6 +1,15 @@
-# usage: julia 2_extract_quartet_subnetworks.jl [ngt] [delete1]
-# ngt is the number of gene trees for PCS to simulate per quartet network.
-# delete1 = 1,0 is whether to delete 1 (one) leaf from each network before doing anything else with it (like examining quartets).
+#= usage
+start from directory "jobi" with i = index of scenario
+where the input files should exist.
+input files: ./SiPhyNetwork_output/sim*.tree
+output file: ./quartets.csv
+
+usage: julia ../2_extract_quartet_subnetworks.jl [ngt] [delete1]
+
+options:
+ngt = number of gene trees for PCS to simulate per quartet network.
+delete1 = 1,0 is whether to delete 1 (one) leaf from each network before doing anything else with it (like examining quartets).
+=#
 
 using PhyloNetworks
 using Random
