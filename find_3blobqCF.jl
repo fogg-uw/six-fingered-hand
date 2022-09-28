@@ -302,7 +302,11 @@ function treesplit(tree::HybridNetwork, taxa)
   # find first non-trivial split that partitions the 4 taxa in 2 vs 2
   tokeep = findfirst( x -> sum(x) == 2, eachrow(mat))
   isnothing(tokeep) && error("none of the clades have 2 taxa")
-  return(mat[tokeep,:])
+  mat = mat[tokeep,:]
+#  if size(mat,2) != 4
+#    mat = transpose(mat) # make sure it is row vector, not column vector
+#  end 
+  return(mat)
 end
 
 """
@@ -366,6 +370,59 @@ function displayed_unrootedtreetopologies!(trees, net)
     unroot_shrink!(net)
     displayed_unrootedtreetopologies!(trees, net)
     displayed_unrootedtreetopologies!(trees, netmin)
+  end
+end
+
+"""
+    displayed_splits!(splits, net, taxonlist)
+
+Like displayed_unrootedtreetopologies!, but uses "tricks" that may speed the
+calculation when the network is a quartet network.  Specifically, if there is
+no 4-blob, then we know that the quartet network has only one split, and it
+can be identified quickly.
+
+Returns a vector of binary splits
+(e.g. [[1 1 0 0], [1 0 1 0]] for a quartet network displaying the splits
+AB|CD and AC|BD but not AD|BC.)
+"""
+function displayed_splits!(net, taxonlist)
+  splits = []
+  displayed_splits!(splits, net, taxonlist)
+  return(splits)
+end
+function displayed_splits!(splits, net, taxonlist)
+  # eliminate redundant splits from current list
+  remove_redundant_splits!(splits)
+  # stop if we have 3 nonredundant splits
+  length(splits) >= 3 && return(splits) # (assumption NOT checked: all splits on our list are nontrivial (2 vs 2))
+  # splits are invariant to root and 3-cycles, so "flatten" them out
+  unroot_shrink!(net) 
+  if net.numHybrids==0 # if it's a tree...
+    push!(splits, treesplit(net,taxonlist)) # ...then grab the split
+  else # if it's not a tree...
+    blob_degrees = blob_degree(net) # ...then examine blobs
+    bdegree = blob_degrees[2]
+    if all(bdegree .< 4) # if the network doesn't have any 4-blob, then it's of class 1:
+      push!(splits, treesplit(net, taxonlist)) # get the one split from hardwired clusters
+      # (use treesplit, even though net is not a tree.)
+      # (come back and be more thoughtful about this)
+      # (including error checks like cecile had earlier)
+    else
+    # if the network has a 4-blob: collect splits appearing in any displayed tree
+      netmin = PhyloNetworks.displayedNetworks!(net, net.hybrid[1], false, true, false, false)
+      displayed_splits!(splits, net,    taxonlist)
+      displayed_splits!(splits, netmin, taxonlist)
+    end
+  end
+end
+function remove_redundant_splits!(splits)
+  for i in length(splits):-1:1
+    thissplit    = splits[i                     ]
+    pastsplits   = splits[  (i+1):length(splits)]
+    oldsplit = any( x-> isequal_split(thissplit, x), each(pastsplits))
+    if oldsplit
+      deleteat!(splits, i)
+    end
   end
 end
 
