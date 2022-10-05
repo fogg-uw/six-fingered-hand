@@ -216,14 +216,14 @@ function quartettype_qCF(net::HybridNetwork,
       dsplit = displayed_splits!(net2, taxonlist)
       #dtree = displayed_unrootedtreetopologies!(net2)
       mat = BitMatrix(undef, (0,4)) # initialize: 1 row per split
-      print("mat="*string(mat)*"\n")
+      #print("mat="*string(mat)*"\n")
       for split in dsplit
-      	print("split=" *string(split )*"\n")
-	print("split'="*string(split')*"\n")
+      	#print("split=" *string(split )*"\n")
+	#print("split'="*string(split')*"\n")
       	mat = [mat; split']
-	print("mat=" * string(mat) * "\n")
+	#print("mat=" * string(mat) * "\n")
       end
-      print("mat=" * string(mat) * "\n")
+      #print("mat=" * string(mat) * "\n")
       #for tree in dtree
       #    split = treesplit(tree, taxonlist)
       #    oldsplit = any( x-> isequal_split(split, x), eachrow(mat))
@@ -233,6 +233,8 @@ function quartettype_qCF(net::HybridNetwork,
       #    size(mat,1) >= 3 && break
       #end
       nsplits = size(mat,1)
+      #print(size(mat,1))
+      #print(size(mat,2))
       if nsplits == 1
         flag_class || @error "found only 1 split on network with a 4-blob, yet no underestimation. ???"
         @error "found only 1 split on 4-blob: flag is true and there's an underestimation for sure"
@@ -404,6 +406,7 @@ function displayed_splits!(splits, net, taxonlist)
   unroot_shrink!(net) # splits are invariant to root and 3-cycles, so "flatten" them out
   if net.numHybrids==0 # if it's a tree...
     newsplit = treesplit(net,taxonlist) # ...then grab the split
+    splits==[] && push!(splits, newsplit)
     all(isequal_split(newsplit, x) for x in splits) || push!(splits, newsplit)
     return(splits)
   else # if it's not a tree...
@@ -411,6 +414,7 @@ function displayed_splits!(splits, net, taxonlist)
     bdegree = blob_degrees[2]
     if all(bdegree .< 4) # if the network has no 4-blob, then it's of class 1:
       newsplit = treesplit(net,taxonlist) # get the one split
+      splits==[] && push!(splits, newsplit)
       all(isequal_split(newsplit, x) for x in splits) || push!(splits, newsplit) 
       return(splits)
       # (use treesplit, even though net is not a tree.)
