@@ -213,16 +213,25 @@ function quartettype_qCF(net::HybridNetwork,
       end
       flag_class = (h_true != h_used)
       # custom function to extract unrooted displayed tree topologies
-      dtree = displayed_unrootedtreetopologies!(net2)
+      dsplit = displayed_splits!(net2, taxonlist)
+      #dtree = displayed_unrootedtreetopologies!(net2)
       mat = BitMatrix(undef, (0,4)) # initialize: 1 row per split
-      for tree in dtree
-          split = treesplit(tree, taxonlist)
-          oldsplit = any( x-> isequal_split(split, x), eachrow(mat))
-          if !oldsplit
-            mat = [mat; split']
-          end
-          size(mat,1) >= 3 && break
+      print("mat="*string(mat)*"\n")
+      for split in dsplit
+      	print("split=" *string(split )*"\n")
+	print("split'="*string(split')*"\n")
+      	mat = [mat; split']
+	print("mat=" * string(mat) * "\n")
       end
+      print("mat=" * string(mat) * "\n")
+      #for tree in dtree
+      #    split = treesplit(tree, taxonlist)
+      #    oldsplit = any( x-> isequal_split(split, x), eachrow(mat))
+      #    if !oldsplit
+      #      mat = [mat; split']
+      #    end
+      #    size(mat,1) >= 3 && break
+      #end
       nsplits = size(mat,1)
       if nsplits == 1
         flag_class || @error "found only 1 split on network with a 4-blob, yet no underestimation. ???"
@@ -387,7 +396,7 @@ AB|CD and AC|BD but not AD|BC.)
 """
 function displayed_splits!(net, taxonlist)
   splits = []
-  displayed_splits!(splits, net, taxonlist)
+  splits = displayed_splits!(splits, net, taxonlist)
   return(splits)
 end
 function displayed_splits!(splits, net, taxonlist)
@@ -435,6 +444,7 @@ function lowesthybrid(net)
     i -= 1
     nn = net.nodes_changed[i]
   end
+  return(nn)
 end
 
 """
