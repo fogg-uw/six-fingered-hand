@@ -391,27 +391,28 @@ function displayed_splits!(net, taxonlist)
   return(splits)
 end
 function displayed_splits!(splits, net, taxonlist)
-  # eliminate redundant splits from current list
-  remove_redundant_splits!(splits)
-  # stop if we have 3 nonredundant splits
-  length(splits) >= 3 && return(splits) # (assumption NOT checked: all splits on our list are nontrivial (2 vs 2))
-  # splits are invariant to root and 3-cycles, so "flatten" them out
-  unroot_shrink!(net) 
+  length(splits) >= 3 && return(splits) # stop if we already have 3 splits
+  unroot_shrink!(net) # splits are invariant to root and 3-cycles, so "flatten" them out
   if net.numHybrids==0 # if it's a tree...
-    push!(splits, treesplit(net,taxonlist)) # ...then grab the split
+    newsplit = treesplit(net,taxonlist) # ...then grab the split
+    all(isequal_split(newsplit, x) for x in splits) || push!(splits, newsplit)
+    return(splits)
   else # if it's not a tree...
     blob_degrees = blob_degree(net) # ...then examine blobs
     bdegree = blob_degrees[2]
-    if all(bdegree .< 4) # if the network doesn't have any 4-blob, then it's of class 1:
-      push!(splits, treesplit(net, taxonlist)) # get the one split from hardwired clusters
+    if all(bdegree .< 4) # if the network has no 4-blob, then it's of class 1:
+      newsplit = treesplit(net,taxonlist) # get the one split
+      all(isequal_split(newsplit, x) for x in splits) || push!(splits, newsplit) 
+      return(splits)
       # (use treesplit, even though net is not a tree.)
       # (come back and be more thoughtful about this)
       # (including error checks like cecile had earlier)
-    else
-    # if the network has a 4-blob: collect splits appearing in any displayed tree
-      netmin = PhyloNetworks.displayedNetworks!(net, net.hybrid[1], false, true, false, false)
-      displayed_splits!(splits, net,    taxonlist)
+    else # if the network has a 4-blob: 
+      nn = lowesthybrid(net) # break the network apart at the lowest hybrid,
+      netmin = PhyloNetworks.displayedNetworks!(net, nn, false, true, false, false)
+      displayed_splits!(splits, net,    taxonlist) # and then recursion.
       displayed_splits!(splits, netmin, taxonlist)
+      return(splits)
     end
   end
 end
@@ -423,6 +424,16 @@ function remove_redundant_splits!(splits)
     if oldsplit
       deleteat!(splits, i)
     end
+  end
+end
+function lowesthybrid(net)
+  preorder!(net)
+  nnodes = length(net.node)
+  i = nnodes
+  nn = net.nodes_changed[i]
+  while !nn.hybrid
+    i -= 1
+    nn = net.nodes_changed[i]
   end
 end
 
