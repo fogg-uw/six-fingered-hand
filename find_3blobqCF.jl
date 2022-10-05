@@ -212,29 +212,13 @@ function quartettype_qCF(net::HybridNetwork,
         end
       end
       flag_class = (h_true != h_used)
-      # custom function to extract unrooted displayed tree topologies
+      # custom function to extract displayed splits
       dsplit = displayed_splits!(net2, taxonlist)
-      #dtree = displayed_unrootedtreetopologies!(net2)
       mat = BitMatrix(undef, (0,4)) # initialize: 1 row per split
-      #print("mat="*string(mat)*"\n")
       for split in dsplit
-      	#print("split=" *string(split )*"\n")
-	#print("split'="*string(split')*"\n")
       	mat = [mat; split']
-	#print("mat=" * string(mat) * "\n")
       end
-      #print("mat=" * string(mat) * "\n")
-      #for tree in dtree
-      #    split = treesplit(tree, taxonlist)
-      #    oldsplit = any( x-> isequal_split(split, x), eachrow(mat))
-      #    if !oldsplit
-      #      mat = [mat; split']
-      #    end
-      #    size(mat,1) >= 3 && break
-      #end
       nsplits = size(mat,1)
-      #print(size(mat,1))
-      #print(size(mat,2))
       if nsplits == 1
         flag_class || @error "found only 1 split on network with a 4-blob, yet no underestimation. ???"
         @error "found only 1 split on 4-blob: flag is true and there's an underestimation for sure"
@@ -426,16 +410,6 @@ function displayed_splits!(splits, net, taxonlist)
       displayed_splits!(splits, net,    taxonlist) # and then recursion.
       displayed_splits!(splits, netmin, taxonlist)
       return(splits)
-    end
-  end
-end
-function remove_redundant_splits!(splits)
-  for i in length(splits):-1:1
-    thissplit    = splits[i                     ]
-    pastsplits   = splits[  (i+1):length(splits)]
-    oldsplit = any( x-> isequal_split(thissplit, x), each(pastsplits))
-    if oldsplit
-      deleteat!(splits, i)
     end
   end
 end
