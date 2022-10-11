@@ -17,14 +17,20 @@ d_0    =  c(0.1, 0.3, 0.6)*2 # forbid hybridizations between lineages more than 
 model  =  1                  # ssa = 0, gsa = 1.  see hartmann wong stadler 2010
 ngt    =  200                # number of gene trees per quartet
 
-#julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia" # sorry
-julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia --threads 128" # sorry
+ncores_julia = 8
+ncores_R     = 8 # just for looping over scenarios.  not for looping over nets
+
+simulate_nets_in_R    = TRUE # if false, you need to provide the nets yourself
+analyze_nets_in_julia = TRUE
+
+julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
 R      = "Rscript"
 
 timeout = "4h" # i don't know if i've ever seen it work in a time > 13min but <20min
 delete1 = FALSE # whether to simulate up to N+1 taxa, then delete 1 later
 
 #on john's machine: julia = "/home/john/julia-1.7.3/bin/julia"
+#on franklin00: julia = "/u/f/o/fogg/julia-1.8.0/bin/julia"
 
 # R will expand.grid the 9 parameter sets and ask SiPhyNetworks to simulate
 # under every combination thereof ("scenario"), then pass the simulated networks to other
@@ -94,9 +100,11 @@ parallel_job = function(i) {
   
   jobdir = paste0("job", i)
   tic(jobdir)
-  cat(paste('start', jobdir, '\n'))
-  unlink(jobdir, recursive = TRUE)
-  dir.create(jobdir)
+  if(simulate_nets_in_R) { # then we need to clean the directory.  o/w leave alone
+    cat(paste('start', jobdir, '\n'))
+    unlink(jobdir, recursive = TRUE)
+    dir.create(jobdir)
+  }
   setwd(jobdir)
   
   # parameters for siphynetwork
@@ -108,13 +116,17 @@ parallel_job = function(i) {
   params2 = scenarios[i, 11]
   params2 = paste(unlist(params2), as.numeric(delete1), collapse=" ")
   
-  command1 = paste("timeout", timeout, R,     script1, params1, sep=" ")
-  command2 = paste("timeout", timeout, julia, script2, params2, sep=" ")
+  command1 = paste("timeout", timeout, R,                                                script1, params1, sep=" ")
+  command2 = paste("timeout", timeout, julia, paste("threads --", ncores_julia, sep=""), script2, params2, sep=" ")
   
-  cat(paste(jobdir, command1, "\n"))
-  system(command1)
-  cat(paste(jobdir, command2, "\n"))
-  system(command2)
+  if(simulate_nets_in_R) {
+    cat(paste(jobdir, command1, "\n"))
+    system(command1)
+  }
+  if(analyze_nets_in_julia) {
+    cat(paste(jobdir, command2, "\n"))
+    system(command2)
+  }
   
   setwd(startingdir)
   cat('finish', jobdir, '\n')
@@ -144,9 +156,8 @@ serial_job = function(i) {
 }
 
 
-numCores = 1
-results_parallel = mclapply(X=1:nrow(scenarios), FUN=parallel_job, mc.cores = numCores)
-results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job                     )
+if(TRUE)                  results_parallel = mclapply(X=1:nrow(scenarios), FUN=parallel_job, mc.cores = ncores_R)
+if(analyze_nets_in_julia) results_serial   =   lapply(X=1:nrow(scenarios), FUN=  serial_job                     )
 
 
 results = results_serial[[1]]
