@@ -134,7 +134,6 @@ parallel_job = function(i) {
   command1 = paste("timeout", timeout, R,                                                script1, params1, sep=" ")
   command2 = paste("timeout", timeout, julia, paste("threads --", ncores_julia, sep=""), script2, params2, sep=" ")
   
-  print(paste(jobdir, "about to sim nets in R"))
   if(simulate_nets_in_R) {
     cat(paste(jobdir, command1, "\n"))
     system(command1)
