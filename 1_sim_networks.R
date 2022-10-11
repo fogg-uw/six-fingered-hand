@@ -18,9 +18,9 @@ model  = args[10] # 0 for ssa and 1 for gsa... see (e.g.) hartmann wong stadler 
 
 ###
 
-library(Rcpp, lib.loc=.libPaths()[2]) # force to load from local library on franklinXX (sorry)
-library(SiPhyNetwork, lib.loc=.libPaths()[1])
-library(ape, lib.loc=.libPaths()[1])
+library(Rcpp)
+library(SiPhyNetwork)
+library(ape)
 
 ###
 

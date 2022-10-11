@@ -1,10 +1,13 @@
 # usage:
-# change the 9 sets of parameters below and set the local julia and R paths (sorry).
+# change the 10 sets of parameters below and set the local julia and R paths (sorry).
 # then run from console with:
 
-#    [Rscript path] 0_control_params.R [r][j][rj][nothing]
+#    [Rscript path] 0_control_params.R [r XOR j XOR nothing]
 
-# see below what happens if you write "j" or "r" or "jr" or nothing
+# arg = r if you just want it to sim networks in R, arg = j if you just want to
+# analyze the nets in julia, arg = blank if you want both / don't know what
+# i'm talking about.
+
 # output is "results.csv".
 
 seed   =  9321
@@ -21,26 +24,29 @@ ngt    =  200                # number of gene trees per quartet
 ncores_julia = 8
 ncores_R     = 8 # just for looping over scenarios.  not for looping over nets
 
- 
+simulate_nets_in_R = FALSE
+analyze_nets_in_julia = FALSE
 
+julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
+R      = "Rscript"
+
+#on john's machine: julia = "/home/john/julia-1.7.3/bin/julia"
+#on franklin00: julia = "/u/f/o/fogg/julia-1.8.0/bin/julia"
+
+timeout = "4h" # i don't know if i've ever seen it work in a time >13min but <20min
+delete1 = FALSE # whether to simulate up to N+1 taxa, then delete 1 later
 
 arg = commandArgs(trailingOnly=TRUE)
 if(length(arg) > 1) error("too many args")
 if(is.na(arg[1])) arg == 'rj'
 if(arg=='r') simulate_nets_in_R = TRUE # if false, you need to provide the nets yourself
 if(arg=='j') analyze_nets_in_julia = TRUE
-if(arg=='r') simulate_nets_in_R = TRUE; analyze_nets_in_julia = TRUE
+if(arg=='rj') {
+  simulate_nets_in_R = TRUE
+  analyze_nets_in_julia = TRUE
+}
 
-julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
-R      = "Rscript"
-
-timeout = "4h" # i don't know if i've ever seen it work in a time > 13min but <20min
-delete1 = FALSE # whether to simulate up to N+1 taxa, then delete 1 later
-
-#on john's machine: julia = "/home/john/julia-1.7.3/bin/julia"
-#on franklin00: julia = "/u/f/o/fogg/julia-1.8.0/bin/julia"
-
-# R will expand.grid the 9 parameter sets and ask SiPhyNetworks to simulate
+# R will expand.grid the 10 parameter sets and ask SiPhyNetworks to simulate
 # under every combination thereof ("scenario"), then pass the simulated networks to other
 # julia + R scripts for further analysis.  the output is "results.csv": it has
 # one row for every scenario, and summary statistics about each one.
@@ -98,18 +104,19 @@ scenarios =
 ###
 
 startingdir = getwd()
+print(startingdir)
 try(system("rm results.csv"), TRUE)
 
-script1 = file.path(startingdir, "1_sim_networks.R")
-script2 = file.path(startingdir, "2_extract_quartet_subnetworks.jl")
-script3 = file.path(startingdir, "3_summarize_findings.R")
+script1 = paste0('\"', file.path(startingdir, "1_sim_networks.R"),                 '\"')
+script2 = paste0('\"', file.path(startingdir, "2_extract_quartet_subnetworks.jl"), '\"')
+script3 = paste0('\"', file.path(startingdir, "3_summarize_findings.R"),           '\"')
 
 parallel_job = function(i) {
   
   jobdir = paste0("job", i)
   tic(jobdir)
+  cat(paste('start', jobdir, '\n'))
   if(simulate_nets_in_R) { # then we need to clean the directory.  o/w leave alone
-    cat(paste('start', jobdir, '\n'))
     unlink(jobdir, recursive = TRUE)
     dir.create(jobdir)
   }
@@ -127,6 +134,7 @@ parallel_job = function(i) {
   command1 = paste("timeout", timeout, R,                                                script1, params1, sep=" ")
   command2 = paste("timeout", timeout, julia, paste("threads --", ncores_julia, sep=""), script2, params2, sep=" ")
   
+  print(paste(jobdir, "about to sim nets in R"))
   if(simulate_nets_in_R) {
     cat(paste(jobdir, command1, "\n"))
     system(command1)
