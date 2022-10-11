@@ -6,7 +6,7 @@
 
 # output is "results.csv".
 
-seed   =  1440 + 1:2         # i like to do current time.  what you add is nreps
+seed   =  9321
 nnet   =  200                # number of networks per scenario
 ntaxa  =  c(4, 6)            # number of taxa per network
 lambda =  c(0.1, 0.3, 1, 3)  # speciation rate, in CUs
@@ -113,7 +113,7 @@ parallel_job = function(i) {
   params1 = paste(unlist(params1), collapse=" ")
   
   # parameters for phylocoalsimulations
-  params2 = scenarios[i, 11]
+  params2 = scenarios[i, c(1,11)]
   params2 = paste(unlist(params2), as.numeric(delete1), collapse=" ")
   
   command1 = paste("timeout", timeout, R,                                                script1, params1, sep=" ")

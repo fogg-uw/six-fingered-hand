@@ -20,15 +20,15 @@ using CSV
 include("find_blobs_and_degree.jl")
 include("find_3blobqCF.jl")
 
-ngt = parse(Int64, ARGS[1])
-delete1 = parse(Int8, ARGS[2])
+seed    = parse(Int64, ARGS[1])
+ngt     = parse(Int64, ARGS[2])
+delete1 = parse(Int8,  ARGS[3])
 
 if !(delete1 == 0 || delete1 == 1)
 	print("delete1 not 0 or 1, interpreting as 0")
 	delete1 = 0
 end
 
-seed = 9 # nine rings for men
 Random.seed!(seed)
 
 #need to loop over trees
