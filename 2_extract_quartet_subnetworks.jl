@@ -101,7 +101,7 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 	Threads.@threads for j = 1:nquartets
 		print(treefile * string(quartets[j]) * '\n')
 		dft[j,2] = string(quartets[j])
-		dft[j,3:end] = analyzeQuartet(quartets[j], taxa, tree)[1,:] # each quartet returns a DataFrame with one row and no sim_num
+		dft[j,3:end] = analyzeQuartet(quartets[j], taxa, tree; seed=seed)[1,:] # each quartet returns a DataFrame with one row and no sim_num
 	end
 
 	return(dft)
