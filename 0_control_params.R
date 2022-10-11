@@ -2,8 +2,9 @@
 # change the 9 sets of parameters below and set the local julia and R paths (sorry).
 # then run from console with:
 
-#    [Rscript path] 0_control_params.R
+#    [Rscript path] 0_control_params.R [r][j][rj][nothing]
 
+# see below what happens if you write "j" or "r" or "jr" or nothing
 # output is "results.csv".
 
 seed   =  9321
@@ -20,8 +21,15 @@ ngt    =  200                # number of gene trees per quartet
 ncores_julia = 8
 ncores_R     = 8 # just for looping over scenarios.  not for looping over nets
 
-simulate_nets_in_R    = TRUE # if false, you need to provide the nets yourself
-analyze_nets_in_julia = TRUE
+ 
+
+
+arg = commandArgs(trailingOnly=TRUE)
+if(length(arg) > 1) error("too many args")
+if(is.na(arg[1])) arg == 'rj'
+if(arg=='r') simulate_nets_in_R = TRUE # if false, you need to provide the nets yourself
+if(arg=='j') analyze_nets_in_julia = TRUE
+if(arg=='r') simulate_nets_in_R = TRUE; analyze_nets_in_julia = TRUE
 
 julia  = "/u/f/o/fogg/julia-1.8.0/bin/julia"
 R      = "Rscript"
