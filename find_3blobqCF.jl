@@ -391,7 +391,7 @@ function displayed_splits!(splits, net, taxonlist)
   if net.numHybrids==0 # if it's a tree...
     newsplit = treesplit(net,taxonlist) # ...then grab the split
     splits==[] && push!(splits, newsplit)
-    all(isequal_split(newsplit, x) for x in splits) || push!(splits, newsplit)
+    any(isequal_split(newsplit, x) for x in splits) || push!(splits, newsplit)
     return(splits)
   else # if it's not a tree...
     blob_degrees = blob_degree(net) # ...then examine blobs
@@ -399,13 +399,22 @@ function displayed_splits!(splits, net, taxonlist)
     if all(bdegree .< 4) # if the network has no 4-blob, then it's of class 1:
       newsplit = treesplit(net,taxonlist) # get the one split
       splits==[] && push!(splits, newsplit)
-      all(isequal_split(newsplit, x) for x in splits) || push!(splits, newsplit) 
+      any(isequal_split(newsplit, x) for x in splits) || push!(splits, newsplit) 
       return(splits)
       # (use treesplit, even though net is not a tree.)
       # (come back and be more thoughtful about this)
       # (including error checks like cecile had earlier)
     else # if the network has a 4-blob: 
-      nn = lowesthybrid(net) # break the network apart at the lowest hybrid,
+      #nn = lowesthybrid(net) # break the network apart at the lowest hybrid,
+      # break the network apart at the lowest hybrid,
+      preorder!(net)
+      nnodes = length(net.node)
+      i = nnodes
+      nn = net.nodes_changed[i]
+      while !nn.hybrid
+        i -= 1
+        nn = net.nodes_changed[i]
+      end
       netmin = PhyloNetworks.displayedNetworks!(net, nn, false, true, false, false)
       displayed_splits!(splits, net,    taxonlist) # and then recursion.
       displayed_splits!(splits, netmin, taxonlist)
@@ -413,17 +422,20 @@ function displayed_splits!(splits, net, taxonlist)
     end
   end
 end
+"
 function lowesthybrid(net)
-  preorder!(net)
-  nnodes = length(net.node)
+  net2 = deepcopy(net)
+  preorder!(net2)
+  nnodes = length(net2.node)
   i = nnodes
-  nn = net.nodes_changed[i]
+  nn = net2.nodes_changed[i]
   while !nn.hybrid
     i -= 1
-    nn = net.nodes_changed[i]
+    nn = net2.nodes_changed[i]
   end
   return(nn)
 end
+"
 
 """
     net6: example network
