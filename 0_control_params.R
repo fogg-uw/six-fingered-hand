@@ -12,7 +12,7 @@
 
 seed   =  9321
 nnet   =  200                # number of networks per scenario
-ntaxa  =  c(4, 6)            # number of taxa per network
+ntaxa  =  c(4, 6, 8)         # number of taxa per network
 lambda =  c(0.1, 0.3, 1, 3)  # speciation rate, in CUs
 mu     =  c(0.1, 0.9)        # extinction rate, as a % of lambda
 nu     =    0.5              # hybridization rate, as as % of lambda
@@ -131,8 +131,8 @@ parallel_job = function(i) {
   params2 = scenarios[i, c(1,11)]
   params2 = paste(unlist(params2), as.numeric(delete1), collapse=" ")
   
-  command1 = paste("timeout", timeout, R,                                                script1, params1, sep=" ")
-  command2 = paste("timeout", timeout, julia, paste("threads --", ncores_julia, sep=""), script2, params2, sep=" ")
+  command1 = paste("timeout", timeout, R,                                script1, params1, sep=" ")
+  command2 = paste("timeout", timeout, julia, "--threads", ncores_julia, script2, params2, sep=" ")
   
   if(simulate_nets_in_R) {
     cat(paste(jobdir, command1, "\n"))
