@@ -52,6 +52,7 @@ while(length(ssa_nets_full) < nnet) {
       nu            = nu,
       hybprops      = hybrid_proportions,
       hyb.inher.fxn = inheritance.fxn,
+      hyb.rate.fxn  = hybrid_success_prob,
       complete      = FALSE # do not return extinct taxa
     )
   }
@@ -65,6 +66,7 @@ while(length(ssa_nets_full) < nnet) {
       nu            = nu,
       hybprops      = hybrid_proportions,
       hyb.inher.fxn = inheritance.fxn,
+      hyb.rate.fxn  = hybrid_success_prob,
       complete      = FALSE # do not return extinct taxa
     )
   }
