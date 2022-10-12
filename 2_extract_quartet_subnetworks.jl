@@ -20,15 +20,15 @@ using CSV
 include("find_blobs_and_degree.jl")
 include("find_3blobqCF.jl")
 
-ngt = parse(Int64, ARGS[1])
-delete1 = parse(Int8, ARGS[2])
+seed    = parse(Int64, ARGS[1])
+ngt     = parse(Int64, ARGS[2])
+delete1 = parse(Int8,  ARGS[3])
 
 if !(delete1 == 0 || delete1 == 1)
 	print("delete1 not 0 or 1, interpreting as 0")
 	delete1 = 0
 end
 
-seed = 9 # nine rings for men
 Random.seed!(seed)
 
 #need to loop over trees
@@ -46,7 +46,7 @@ readTopologyFailures = repeat("", N)
 
 function analyzeTreeFile(treefile::String, treenum::Int64)
 
-	print(treefile * '\n')
+	#print(treefile * '\n')
 
 	m = match(r"sim(\d+)\.tree", treefile)
 	sim_num = parse(Int16, m.captures[1])
@@ -99,9 +99,9 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 	)
 
 	Threads.@threads for j = 1:nquartets
-		print(treefile * string(quartets[j]) * '\n')
+		#print(treefile * string(quartets[j]) * '\n')
 		dft[j,2] = string(quartets[j])
-		dft[j,3:end] = analyzeQuartet(quartets[j], taxa, tree)[1,:] # each quartet returns a DataFrame with one row and no sim_num
+		dft[j,3:end] = analyzeQuartet(quartets[j], taxa, tree; seed=seed)[1,:] # each quartet returns a DataFrame with one row and no sim_num
 	end
 
 	return(dft)

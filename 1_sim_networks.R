@@ -18,9 +18,9 @@ model  = args[10] # 0 for ssa and 1 for gsa... see (e.g.) hartmann wong stadler 
 
 ###
 
-library(Rcpp, lib.loc=.libPaths()[2]) # force to load from local library on franklinXX (sorry)
-library(SiPhyNetwork, lib.loc=.libPaths()[1])
-library(ape, lib.loc=.libPaths()[1])
+library(Rcpp)
+library(SiPhyNetwork)
+library(ape)
 
 ###
 
@@ -52,6 +52,7 @@ while(length(ssa_nets_full) < nnet) {
       nu            = nu,
       hybprops      = hybrid_proportions,
       hyb.inher.fxn = inheritance.fxn,
+      hyb.rate.fxn  = hybrid_success_prob,
       complete      = FALSE # do not return extinct taxa
     )
   }
@@ -65,6 +66,7 @@ while(length(ssa_nets_full) < nnet) {
       nu            = nu,
       hybprops      = hybrid_proportions,
       hyb.inher.fxn = inheritance.fxn,
+      hyb.rate.fxn  = hybrid_success_prob,
       complete      = FALSE # do not return extinct taxa
     )
   }
