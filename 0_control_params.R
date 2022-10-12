@@ -152,7 +152,7 @@ parallel_job = function(i) {
 
 serial_job = function(i) {
   
-  source(script3)
+  source(noquote(script3))
   
   setwd(startingdir)
   jobdir = paste0("job", i)
