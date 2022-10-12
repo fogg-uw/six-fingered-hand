@@ -22,7 +22,7 @@ model  =  1                  # ssa = 0, gsa = 1.  see hartmann wong stadler 2010
 ngt    =  200                # number of gene trees per quartet
 
 ncores_julia = 8
-ncores_R     = 8 # just for looping over scenarios.  not for looping over nets
+ncores_R     = 16 # just for looping over scenarios.  not for looping over nets
 
 simulate_nets_in_R = FALSE
 analyze_nets_in_julia = FALSE
@@ -109,7 +109,8 @@ try(system("rm results.csv"), TRUE)
 
 script1 = paste0('\"', file.path(startingdir, "1_sim_networks.R"),                 '\"')
 script2 = paste0('\"', file.path(startingdir, "2_extract_quartet_subnetworks.jl"), '\"')
-script3 = paste0('\"', file.path(startingdir, "3_summarize_findings.R"),           '\"')
+script3 = paste0(      file.path(startingdir, "3_summarize_findings.R")                )
+
 
 parallel_job = function(i) {
   
@@ -152,7 +153,7 @@ parallel_job = function(i) {
 
 serial_job = function(i) {
   
-  source(noquote(script3))
+  source(script3)
   
   setwd(startingdir)
   jobdir = paste0("job", i)
