@@ -1,0 +1,265 @@
+---
+title: "plot results for publication"
+author: "John Fogg & Cecile Ane"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, comment=NA)
+library(ggplot2)
+library(dplyr)
+options(show.signif.stars=F)
+```
+
+# read data and sanity checks
+
+read the "final" results from the simulations,
+as created by step 3 `3_summarize_findings.R`:
+
+```{r}
+resultfile = "results_20221103_withD0.csv"
+dat = read.csv(resultfile) %>% mutate(d=d_0) %>%
+  mutate(d_0 = round(d*lambda,10),
+         mu_lambda = round(mu/lambda,10), # 0.1 or 0.9
+         nu_lambda = round(nu/lambda,10), # 0.5 always
+         A_q = A/q,   # proportion of candidate possibly anomalous 4-taxon sets
+         C_B = C/B,   # proportion of anomalous out of candidate & analyzable 4-taxon sets
+         C_q = C/q,   # proportion anomalous / total number of 4-taxon sets
+         A1_q = A1/q, # proportion of 4-taxon networks with a 3_2 blob
+         A2_q = A2/q, # proportion of 4-taxon networks displaying 2 splits
+         C1_A1 = C1/A1, # proportion anomalous, out of candidates (3_2 blob) within class 1
+         C2_A2 = C2/A2)
+dat$time = read.csv("results_20221103_withtime.csv")$time
+```
+
+meaning of columns:
+
+- q: total number of 4-taxon sets
+- q10, q11, q12: number of 4-taxon sets of class 1 with 0 3-blobs, 1 3-blob, 1 3_2 blob.
+- q2: number of 4-taxon sets of class 2
+- q3: number of 4-taxon sets of class 3
+- A1=q12, A2=q2: number of quarnets susceptible of being anomalous
+- A=A1+A2
+- B: number of quarnets for which gene tree simulations could run
+- C1, C2, C=C1+C2: number of anomalous quartets of class 1 or 2, where
+  "anomalous" is simply using the empirical gene trees frequencies (no test)
+
+sanity checks:
+
+```{r}
+stopifnot(nrow(dat) == 4*2*1*2*3*3)
+# 144: number of values for: lambda, mu, nu, pi, d0, ntaxa
+stopifnot(with(dat, q10+q11+q12+q2+q3 - q) == 0)
+dat %>% mutate(q_expected = nsim * choose(ntaxa,4)) %>%
+  filter(q != q_expected) # job 143, 6 taxa, lambda=3, d_0=1.2. time was not an issue. then what?
+# stopifnot(with(dat, q == nsim * choose(ntaxa,4))) # fails: because of job 143
+stopifnot(with(dat, unique(A1-q12))==0)
+stopifnot(with(dat, unique(A2-q2)) ==0)
+# all q quartets were analyzable:
+stopifnot(with(dat, unique(B-A))==0) # to check that B=A: all quartets were analyzable
+stopifnot( # check that the sum of all Ds are = B value
+  dat %>% mutate(Dsum = rowSums(across(starts_with("D",ignore.case=F)))) %>%
+  mutate(check = B-Dsum) %>% summarize(isDsumcorret = unique(check)) == 0
+)
+stopifnot(with(dat, sum((D1anom-C1)>0) == 0)) # check that D1anom <= C1
+stopifnot(with(dat, sum((D2anom-C2)>0) == 0))
+stopifnot(with(dat, sum((A1-C1 - D1good)<0) == 0)) # check that A1-C1 >= D1good
+stopifnot(with(dat, sum((A2-C2 - D2good)<0) == 0))
+
+dat = mutate(dat, ntaxa=factor(ntaxa), M = factor(M))
+```
+
+# averaged summary statistics
+
+```{r}
+qtot = 68800 # from this below
+200*(1 + 15 + 70)/3 * (144/4/3)
+datsum = dat %>% group_by(lambda,d_0) %>%
+  summarize(class1 = sum(q10+q11+q12),
+            class1_32blob = sum(A1),
+            class2 = sum(A2),
+            class3 = sum(q3),
+            anomalous1_naive = sum(C1),
+            anomalous2_naive = sum(C2),
+            anomalous1_lib  = sum(D1anom),
+            anomalous2_lib  = sum(D2anom),
+            anomalous1_cons = sum(D1anom) + sum(D1ambi),
+            anomalous2_cons = sum(D2anom) + sum(D2ambi),
+            .groups="drop") %>%
+  mutate(prop_anomalous_naive = (anomalous1_naive + anomalous2_naive)/qtot,
+         prop_anomalous_lib  = (anomalous1_lib  + anomalous2_lib )/qtot,
+         prop_anomalous_cons = (anomalous1_cons + anomalous2_cons)/qtot,
+         prop_32     = class1_32blob/qtot,
+         prop_class2 = class2/qtot,
+         prob_anomalous1_naive = anomalous1_naive/class1_32blob,
+         prob_anomalous2_naive = anomalous2_naive/class2,
+         prob_anomalous1_lib  = anomalous1_lib /class1_32blob,
+         prob_anomalous2_lib  = anomalous2_lib /class2,
+         prob_anomalous1_cons = anomalous1_cons/class1_32blob,
+         prob_anomalous2_cons = anomalous2_cons/class2
+         )
+# stopifnot(with(datsum, class1 + class2 + class3) == qtot) # last one is 68575 instead of 68800: missing 225
+datsum %>% select(lambda, d_0, starts_with("prop_")) %>% arrange(prop_anomalous_naive)
+ggplot(datsum, aes(x=prop_anomalous_naive, y=prop_anomalous_lib)) +
+  geom_point(color="darkkhaki") +
+  geom_point(aes(y=prop_anomalous_cons), color="deepskyblue") +
+  geom_point(aes(y=prop_anomalous_naive), color="orangered", alpha=0.5) +
+  scale_y_continuous(name="proportion anomalous", trans="sqrt") +
+  scale_x_continuous(name="proportion anomalous, naive method", trans="sqrt")
+  # geom_abline(intercept=0, slope=1, color="deepskyblue")
+```
+
+# plots: class proportions
+
+proportion of 4-taxon networks with 3_2 blobs:
+
+This visualization is not my preferred one, as we don't see the effect
+of extinction. It focuses on the effect of d0, but that one is easy to see.
+
+```{r, warning=F, eval=F}
+ggplot(dat, aes(y=A1_q, x=d_0, color=factor(lambda), shape=ntaxa)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.2)) +
+  facet_grid(~ mu_lambda) +
+  theme_minimal() +
+  scale_x_continuous(name="distance threshold d/\u03BB for reticulation success",
+                     breaks=unique(dat$d_0), minor_breaks=NULL) +
+  scale_y_continuous(name="proportion of 4-taxon subnetworks with a 3_2 blob",
+                     trans="identity") # "sqrt" is too strong
+```
+
+alternative: to better see the effect of extinction.
+
+```{r}
+ggplot(dat, aes(y=A1_q, x=factor(mu_lambda), color=factor(lambda), shape=ntaxa)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.4), alpha=0.8) +
+  guides(color=guide_legend(title=expression(speciation~lambda), order=1),
+         shape=guide_legend(title="# of taxa")) +
+  facet_grid(~ d_0) +
+  theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
+  labs(x=expression(turnover~rate~mu/lambda),
+       subtitle=expression(distance~threshold~d/lambda),
+       title=expression(Proportion~of~4*"-"*taxon~networks~with~a~3[2]~blob)) +
+  scale_y_continuous(name="proportion",
+                     trans="identity") # "sqrt" is too strong
+ggsave("fig_prob_32blob.pdf", height=4.5, width=7)
+```
+
+proportion of 4-taxon networks with exactly 2 splits:
+
+```{r, warning=F}
+ggplot(dat, aes(y=A2_q, x=factor(mu_lambda), color=factor(lambda), shape=ntaxa)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.4), alpha=0.8) +
+  guides(color=guide_legend(title=expression(speciation~lambda), order=1),
+         shape=guide_legend(title="# of taxa")) +
+  facet_grid(~ d_0) +
+  theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
+  labs(x=expression(turnover~rate~mu/lambda),
+       subtitle=expression(distance~threshold~d/lambda),
+       title="Proportion of 4-taxon networks of class 2") +
+  scale_y_continuous(name="proportion", trans="identity") # sqrt too strong
+ggsave("fig_prob_class2.pdf", height=4.5, width=7)
+```
+
+# plots: anomalies, the naive way
+
+proportion of anomalous networks among those with a 3_2 blob:
+
+```{r}
+ggplot(filter(dat, A1>0),
+       aes(y=C1_A1, x=factor(d_0), color=factor(mu_lambda), shape=ntaxa)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.4)) +
+  # aes(alpha=cut(A1, breaks=c(0,10,200,10000)))
+  guides(color=guide_legend(title=expression(turnover~mu/lambda), order=1),
+         shape=guide_legend(title="# of taxa")) +
+  facet_grid(~ lambda) +
+  theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
+  labs(x=expression(distance~threshold~d/lambda),
+       subtitle=expression(speciation~rate~lambda),
+       title=expression(Anomalous~CFs~among~class*"-"*1~networks~with~a~3[2]~blob)) +
+  scale_y_continuous(name="proportion anomalous", trans="sqrt",
+                     breaks=c(0,.01,.05,.1,.25,.5,.75,1), minor_breaks=c(0), expand=c(.01,.01))
+ggsave("fig_prob_anomalous1_32blob.pdf", height=4.5, width=7)
+```
+
+proportion of anomalous networks among those of class 1
+(including trees and networks with 2-blobs or 3_1 blobs):
+
+```{r}
+ggplot(filter(dat, q10+q11+q12 > 0),
+       aes(y=C1/(q10+q11+q12), x=factor(d_0), color=factor(mu_lambda), shape=ntaxa)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.4)) +
+  # aes(alpha=cut(A1, breaks=c(0,10,200,10000)))
+  guides(color=guide_legend(title=expression(turnover~mu/lambda), order=1),
+         shape=guide_legend(title="# of taxa")) +
+  facet_grid(~ lambda) +
+  theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
+  labs(x=expression(distance~threshold~d/lambda),
+       subtitle=expression(speciation~rate~lambda),
+       title="Anomalous CFs among class-1 quarnets") +
+  scale_y_continuous(name="proportion anomalous", trans="sqrt",
+                     breaks=c(0,.001,.005,.01,.015,.02), minor_breaks=c(0),
+                     expand=c(.002,.002))
+ggsave("fig_prob_anomalous1.pdf", height=4.5, width=7)
+```
+
+proportion of anomalous networks among class-2 networks:
+
+```{r}
+ggplot(filter(dat, A2>0),
+       aes(y=C2_A2, x=factor(d_0), color=factor(mu_lambda), shape=ntaxa)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.4)) +
+  # aes(alpha=cut(C1, breaks=c(0,10,200)))
+  guides(color=guide_legend(title=expression(turnover~mu/lambda), order=1),
+         shape=guide_legend(title="# of taxa")) +
+  facet_grid(~ lambda) +
+  theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
+  labs(x=expression(distance~threshold~d/lambda),
+       subtitle=expression(speciation~rate~lambda),
+       title="Anomalous CFs among class-2 quarnets") +
+  scale_y_continuous(name="proportion anomalous", trans="sqrt",
+                     breaks=c(0,.01,.05,.1,.25,.5,.75,1), minor_breaks=c(0),
+                     expand=c(0.01,0.01))
+ggsave("fig_prob_anomalous2.pdf", height=4.5, width=7)
+```
+
+## overall proportion of anomalous networks
+
+```{r}
+plot_overall_anomalies = function(dat_y){ # uses 'y' as response variable name
+  ggplot(dat_y,
+         aes(y, x=factor(d_0), color=factor(mu_lambda), shape=ntaxa)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.4)) +
+  guides(color=guide_legend(title=expression(turnover~mu/lambda), order=1),
+         shape=guide_legend(title="# of taxa")) +
+  facet_grid(~ lambda) +
+  theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
+  labs(x=expression(distance~threshold~d/lambda),
+       subtitle=expression(speciation~rate~lambda),
+       title="Anomalous CFs among all 4-taxon networks") +
+  scale_y_continuous(name="proportion anomalous", trans="sqrt",
+                     breaks=c(0,.001,.01,.025,.05,.075,.1,.125,.25), minor_breaks=c(0),
+                     expand=c(0.002,0.01))
+}
+```
+
+the naive way of deciding about anomalies:
+
+```{r}
+plot_overall_anomalies(mutate(dat, y = (C1+C2)/q))
+ggsave("fig_prob_anomalous12_naive.pdf", height=4.5, width=7)
+```
+
+the liberal way:
+
+```{r}
+plot_overall_anomalies(mutate(dat, y = (D1anom+D2anom)/q))
+ggsave("fig_prob_anomalous12_lib.pdf", height=4.5, width=7)
+```
+
+the conservative way:
+
+```{r}
+plot_overall_anomalies(mutate(dat, y = (D1anom+D1ambi + D2anom+D2ambi)/q))
+ggsave("fig_prob_anomalous12_cons.pdf", height=4.5, width=7)
+```
