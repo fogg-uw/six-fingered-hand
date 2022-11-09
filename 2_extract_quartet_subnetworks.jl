@@ -21,7 +21,8 @@ include("find_anomalies.jl")
 
 seed    = parse(Int64, ARGS[1])
 ngt     = parse(Int64, ARGS[2])
-delete1 = parse(Int8,  ARGS[3])
+rho     = parse(Float64, ARGS[3])
+delete1 = parse(Int8,  ARGS[4])
 
 if !(delete1 == 0 || delete1 == 1)
 	print("delete1 not 0 or 1, interpreting as 0")
@@ -149,7 +150,7 @@ function analyzeQuartet(quartet, taxa, tree; seed=nothing)
 	dfq[1,"num3blob_col"] = quartet_num3blob
 	dfq[1,"num4blob_col"] = quartet_num4blob
 
-	ns, qCF, _, tmpdf, is32blob, isanomalous, flag = quartettype_qCF(quartettree, ngt;
+	ns, qCF, _, tmpdf, is32blob, isanomalous, flag = quartettype_qCF(quartettree, ngt, rho;
 	    verbose=false, blob_degrees=quartet_blob_degree, seed=seed)
 
 	dfq[1,"nsplit"] = ns

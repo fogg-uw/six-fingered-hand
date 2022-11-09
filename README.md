@@ -21,6 +21,16 @@ or step 3 only (summarize all replicates from each scenario):
 Rscript 0_control_params.R 1
 ```
 
+check the number of networks simulated after step 1:
+```shell
+ls job[0-9]*/SiPhyNetwork_output/sim*.tree | wc -l # overall: should be #jobs * #nets
+for jobdir in job[0-9]* # if more detail needed
+do
+  echo -n "$jobdir: "
+  ls $jobdir/SiPhyNetwork_output/sim*.tree | wc -l
+done
+```
+
 ## dependencies
 
 [SiPhyNetwork](https://github.com/jjustison/SiPhyNetwork): now on CRAN,

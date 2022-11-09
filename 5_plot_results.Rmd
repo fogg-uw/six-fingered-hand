@@ -12,13 +12,16 @@ library(dplyr)
 options(show.signif.stars=F)
 ```
 
-# read data and sanity checks
+# baseline case
 
-read the "final" results from the simulations,
-as created by step 3 `3_summarize_findings.R`:
+4,5,8 taxa, independent inheritance (no correlation).
+
+## read data & sanity checks
+
+read the data: results summarized by step 3.
 
 ```{r}
-resultfile = "results_20221103_withD0.csv"
+resultfile = "results_base.csv" # "results_20221103_withD0.csv"
 dat = read.csv(resultfile) %>% mutate(d=d_0) %>%
   mutate(d_0 = round(d*lambda,10),
          mu_lambda = round(mu/lambda,10), # 0.1 or 0.9
@@ -30,7 +33,7 @@ dat = read.csv(resultfile) %>% mutate(d=d_0) %>%
          A2_q = A2/q, # proportion of 4-taxon networks displaying 2 splits
          C1_A1 = C1/A1, # proportion anomalous, out of candidates (3_2 blob) within class 1
          C2_A2 = C2/A2)
-dat$time = read.csv("results_20221103_withtime.csv")$time
+# dat$time = read.csv("results_20221103_withtime.csv")$time
 ```
 
 meaning of columns:
@@ -48,12 +51,12 @@ meaning of columns:
 sanity checks:
 
 ```{r}
-stopifnot(nrow(dat) == 4*2*1*2*3*3)
-# 144: number of values for: lambda, mu, nu, pi, d0, ntaxa
+njobs = 3*4*2*1*2*3*1
+# number of values for: ntaxa, lambda, mu, nu, pi, relatived0, rho
+stopifnot(nrow(dat) == njobs)
 stopifnot(with(dat, q10+q11+q12+q2+q3 - q) == 0)
-dat %>% mutate(q_expected = nsim * choose(ntaxa,4)) %>%
-  filter(q != q_expected) # job 143, 6 taxa, lambda=3, d_0=1.2. time was not an issue. then what?
-# stopifnot(with(dat, q == nsim * choose(ntaxa,4))) # fails: because of job 143
+# dat %>% mutate(q_expected = nsim * choose(ntaxa,4)) %>% filter(q != q_expected)
+stopifnot(with(dat, q == nsim * choose(ntaxa,4)))
 stopifnot(with(dat, unique(A1-q12))==0)
 stopifnot(with(dat, unique(A2-q2)) ==0)
 # all q quartets were analyzable:
@@ -67,14 +70,26 @@ stopifnot(with(dat, sum((D2anom-C2)>0) == 0))
 stopifnot(with(dat, sum((A1-C1 - D1good)<0) == 0)) # check that A1-C1 >= D1good
 stopifnot(with(dat, sum((A2-C2 - D2good)<0) == 0))
 
-dat = mutate(dat, ntaxa=factor(ntaxa), M = factor(M))
+dat = mutate(dat, ntaxa=factor(ntaxa), M = factor(M)) %>%
+      mutate(ntaxa_M = ntaxa:M)
 ```
 
-# averaged summary statistics
+```{r, eval=F}
+summary(dat$time/60) # median: 21min/job. Q3=58min/job. max: 226min = 3.7h/job
+# total running time was 4h 13min, bc 64 cores for 144 jobs.
+hist(dat$time, breaks=20) # very skewed
+```
+
+## summary statistics for λ,d0
+
+below: each 4-taxon set is given equal weight.
+But the 70 four-taxon sets from the same 8-taxon network are not independent.
+It would be best to average over each value of ntaxa,
+and then average over the groups of ntaxa.
 
 ```{r}
-qtot = 68800 # from this below
-200*(1 + 15 + 70)/3 * (144/4/3)
+# 4 values for λ and 3 values for d0, so:
+qtot = 800*(1 + 15 + 70)/3 * (144/4/3)
 datsum = dat %>% group_by(lambda,d_0) %>%
   summarize(class1 = sum(q10+q11+q12),
             class1_32blob = sum(A1),
@@ -99,7 +114,7 @@ datsum = dat %>% group_by(lambda,d_0) %>%
          prob_anomalous1_cons = anomalous1_cons/class1_32blob,
          prob_anomalous2_cons = anomalous2_cons/class2
          )
-# stopifnot(with(datsum, class1 + class2 + class3) == qtot) # last one is 68575 instead of 68800: missing 225
+stopifnot(with(datsum, class1 + class2 + class3) == qtot)
 datsum %>% select(lambda, d_0, starts_with("prop_")) %>% arrange(prop_anomalous_naive)
 ggplot(datsum, aes(x=prop_anomalous_naive, y=prop_anomalous_lib)) +
   geom_point(color="darkkhaki") +
@@ -110,31 +125,36 @@ ggplot(datsum, aes(x=prop_anomalous_naive, y=prop_anomalous_lib)) +
   # geom_abline(intercept=0, slope=1, color="deepskyblue")
 ```
 
-# plots: class proportions
+## plots: class proportions
+
+set choice of shapes to code for 2 variables #taxa and hybrid type:
+````{r}
+taxhyb_shape = c(
+  "4:0.25" = 15,
+  "4:0.5"  = 0,
+  "6:0.25" = 16,
+  "6:0.5"  = 1,
+  "8:0.25" = 17,
+  "8:0.5"  = 2
+)
+taxhyb_labels = c(
+  expression(4~taxa~~pi["+"]~"="~0.25),
+  expression(4~taxa~~pi["+"]~"="~"0.50"),
+  expression(6~taxa~~pi["+"]~"="~0.25),
+  expression(6~taxa~~pi["+"]~"="~"0.50"),
+  expression(8~taxa~~pi["+"]~"="~0.25),
+  expression(8~taxa~~pi["+"]~"="~"0.50")
+)
+```
 
 proportion of 4-taxon networks with 3_2 blobs:
 
-This visualization is not my preferred one, as we don't see the effect
-of extinction. It focuses on the effect of d0, but that one is easy to see.
-
-```{r, warning=F, eval=F}
-ggplot(dat, aes(y=A1_q, x=d_0, color=factor(lambda), shape=ntaxa)) +
-  geom_point(position=position_jitterdodge(dodge.width=0.2)) +
-  facet_grid(~ mu_lambda) +
-  theme_minimal() +
-  scale_x_continuous(name="distance threshold d/\u03BB for reticulation success",
-                     breaks=unique(dat$d_0), minor_breaks=NULL) +
-  scale_y_continuous(name="proportion of 4-taxon subnetworks with a 3_2 blob",
-                     trans="identity") # "sqrt" is too strong
-```
-
-alternative: to better see the effect of extinction.
-
 ```{r}
-ggplot(dat, aes(y=A1_q, x=factor(mu_lambda), color=factor(lambda), shape=ntaxa)) +
-  geom_point(position=position_jitterdodge(dodge.width=0.4), alpha=0.8) +
+ggplot(dat, aes(y=A1_q, x=factor(mu_lambda), color=factor(lambda), shape=ntaxa_M)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.5, seed=3), alpha=0.8) +
+  scale_shape_manual(values=taxhyb_shape, labels=taxhyb_labels) +
   guides(color=guide_legend(title=expression(speciation~lambda), order=1),
-         shape=guide_legend(title="# of taxa")) +
+         shape=guide_legend(title="")) +
   facet_grid(~ d_0) +
   theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
   labs(x=expression(turnover~rate~mu/lambda),
@@ -148,10 +168,11 @@ ggsave("fig_prob_32blob.pdf", height=4.5, width=7)
 proportion of 4-taxon networks with exactly 2 splits:
 
 ```{r, warning=F}
-ggplot(dat, aes(y=A2_q, x=factor(mu_lambda), color=factor(lambda), shape=ntaxa)) +
-  geom_point(position=position_jitterdodge(dodge.width=0.4), alpha=0.8) +
+ggplot(dat, aes(y=A2_q, x=factor(mu_lambda), color=factor(lambda), shape=ntaxa_M)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.5, seed=2), alpha=0.8) +
+  scale_shape_manual(values=taxhyb_shape, labels=taxhyb_labels) +
   guides(color=guide_legend(title=expression(speciation~lambda), order=1),
-         shape=guide_legend(title="# of taxa")) +
+         shape=guide_legend(title="")) +
   facet_grid(~ d_0) +
   theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
   labs(x=expression(turnover~rate~mu/lambda),
@@ -161,24 +182,29 @@ ggplot(dat, aes(y=A2_q, x=factor(mu_lambda), color=factor(lambda), shape=ntaxa))
 ggsave("fig_prob_class2.pdf", height=4.5, width=7)
 ```
 
-# plots: anomalies, the naive way
+## plots: % anomalies within classes
+
+the naive way.
 
 proportion of anomalous networks among those with a 3_2 blob:
 
 ```{r}
 ggplot(filter(dat, A1>0),
-       aes(y=C1_A1, x=factor(d_0), color=factor(mu_lambda), shape=ntaxa)) +
-  geom_point(position=position_jitterdodge(dodge.width=0.4)) +
-  # aes(alpha=cut(A1, breaks=c(0,10,200,10000)))
-  guides(color=guide_legend(title=expression(turnover~mu/lambda), order=1),
-         shape=guide_legend(title="# of taxa")) +
+       aes(y=C1_A1, x=factor(d_0), color=factor(mu_lambda), shape=ntaxa_M)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.5, seed=4)) +
+  scale_shape_manual(values=taxhyb_shape, labels=taxhyb_labels) +
+  scale_color_discrete(labels=c(expression(mu/lambda~"="~0.1),
+                                expression(mu/lambda~"="~0.9))) +
+  guides(color=guide_legend(title="", order=1),
+         shape=guide_legend(title="")) +
   facet_grid(~ lambda) +
-  theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
+  theme_bw() +
+  theme(plot.subtitle = element_text(hjust=0.5), legend.position = "bottom") +
   labs(x=expression(distance~threshold~d/lambda),
        subtitle=expression(speciation~rate~lambda),
        title=expression(Anomalous~CFs~among~class*"-"*1~networks~with~a~3[2]~blob)) +
   scale_y_continuous(name="proportion anomalous", trans="sqrt",
-                     breaks=c(0,.01,.05,.1,.25,.5,.75,1), minor_breaks=c(0), expand=c(.01,.01))
+                     breaks=c(0,.001,.01,.05,.1,.2,.5,.75,1), minor_breaks=c(0), expand=c(.01,.01))
 ggsave("fig_prob_anomalous1_32blob.pdf", height=4.5, width=7)
 ```
 
@@ -187,16 +213,19 @@ proportion of anomalous networks among those of class 1
 
 ```{r}
 ggplot(filter(dat, q10+q11+q12 > 0),
-       aes(y=C1/(q10+q11+q12), x=factor(d_0), color=factor(mu_lambda), shape=ntaxa)) +
-  geom_point(position=position_jitterdodge(dodge.width=0.4)) +
-  # aes(alpha=cut(A1, breaks=c(0,10,200,10000)))
-  guides(color=guide_legend(title=expression(turnover~mu/lambda), order=1),
-         shape=guide_legend(title="# of taxa")) +
+       aes(y=C1/(q10+q11+q12), x=factor(d_0), color=factor(mu_lambda), shape=ntaxa_M)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.5, seed=6)) +
+  scale_shape_manual(values=taxhyb_shape, labels=taxhyb_labels) +
+  scale_color_discrete(labels=c(expression(mu/lambda~"="~0.1),
+                                expression(mu/lambda~"="~0.9))) +
+  guides(color=guide_legend(title="", order=1),
+         shape=guide_legend(title="")) +
   facet_grid(~ lambda) +
-  theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
+  theme_bw() +
+  theme(plot.subtitle = element_text(hjust=0.5), legend.position = "bottom") +
   labs(x=expression(distance~threshold~d/lambda),
        subtitle=expression(speciation~rate~lambda),
-       title="Anomalous CFs among class-1 quarnets") +
+       title="Anomalous CFs among class-1 networks") +
   scale_y_continuous(name="proportion anomalous", trans="sqrt",
                      breaks=c(0,.001,.005,.01,.015,.02), minor_breaks=c(0),
                      expand=c(.002,.002))
@@ -207,18 +236,21 @@ proportion of anomalous networks among class-2 networks:
 
 ```{r}
 ggplot(filter(dat, A2>0),
-       aes(y=C2_A2, x=factor(d_0), color=factor(mu_lambda), shape=ntaxa)) +
-  geom_point(position=position_jitterdodge(dodge.width=0.4)) +
-  # aes(alpha=cut(C1, breaks=c(0,10,200)))
-  guides(color=guide_legend(title=expression(turnover~mu/lambda), order=1),
-         shape=guide_legend(title="# of taxa")) +
+       aes(y=C2_A2, x=factor(d_0), color=factor(mu_lambda), shape=ntaxa_M)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.5, seed=1)) +
+  scale_shape_manual(values=taxhyb_shape, labels=taxhyb_labels) +
+  scale_color_discrete(labels=c(expression(mu/lambda~"="~0.1),
+                                expression(mu/lambda~"="~0.9))) +
+  guides(color=guide_legend(title="", order=1),
+         shape=guide_legend(title="")) +
   facet_grid(~ lambda) +
-  theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
+  theme_bw() +
+  theme(plot.subtitle = element_text(hjust=0.5), legend.position = "bottom") +
   labs(x=expression(distance~threshold~d/lambda),
        subtitle=expression(speciation~rate~lambda),
        title="Anomalous CFs among class-2 quarnets") +
   scale_y_continuous(name="proportion anomalous", trans="sqrt",
-                     breaks=c(0,.01,.05,.1,.25,.5,.75,1), minor_breaks=c(0),
+                     breaks=c(0,.01,.05,.1,.2,.3,.4,.75,1), minor_breaks=c(0),
                      expand=c(0.01,0.01))
 ggsave("fig_prob_anomalous2.pdf", height=4.5, width=7)
 ```
@@ -228,12 +260,16 @@ ggsave("fig_prob_anomalous2.pdf", height=4.5, width=7)
 ```{r}
 plot_overall_anomalies = function(dat_y){ # uses 'y' as response variable name
   ggplot(dat_y,
-         aes(y, x=factor(d_0), color=factor(mu_lambda), shape=ntaxa)) +
-  geom_point(position=position_jitterdodge(dodge.width=0.4)) +
-  guides(color=guide_legend(title=expression(turnover~mu/lambda), order=1),
-         shape=guide_legend(title="# of taxa")) +
+         aes(y, x=factor(d_0), color=factor(mu_lambda), shape=ntaxa_M)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.5, seed=10)) +
+  scale_shape_manual(values=taxhyb_shape, labels=taxhyb_labels) +
+  scale_color_discrete(labels=c(expression(mu/lambda~"="~0.1),
+                                expression(mu/lambda~"="~0.9))) +
+  guides(color=guide_legend(title="", order=1),
+         shape=guide_legend(title="")) +
   facet_grid(~ lambda) +
-  theme_bw() + theme(plot.subtitle = element_text(hjust=0.5)) +
+  theme_bw() +
+  theme(plot.subtitle = element_text(hjust=0.5), legend.position = "bottom") +
   labs(x=expression(distance~threshold~d/lambda),
        subtitle=expression(speciation~rate~lambda),
        title="Anomalous CFs among all 4-taxon networks") +
@@ -262,4 +298,167 @@ the conservative way:
 ```{r}
 plot_overall_anomalies(mutate(dat, y = (D1anom+D1ambi + D2anom+D2ambi)/q))
 ggsave("fig_prob_anomalous12_cons.pdf", height=4.5, width=7)
+```
+
+# effect of inheritance correlation
+
+experiment using 4 taxa only.
+
+## read data & sanity checks
+
+```{r}
+resultfile = "results_rho.csv"
+dat = read.csv(resultfile) %>% mutate(d=d_0) %>%
+  mutate(d_0 = round(d*lambda,10),
+         mu_lambda = round(mu/lambda,10), # 0.1 or 0.9
+         nu_lambda = round(nu/lambda,10), # 0.5 always
+         A_q = A/q,
+         C_B = C/B,
+         C_q = C/q,
+         A1_q = A1/q,
+         A2_q = A2/q,
+         C1_A1 = C1/A1,
+         C2_A2 = C2/A2)
+
+njobs = 1*4*2*1*2*3*6
+# number of values for: ntaxa, lambda, mu, nu, pi, relatived0, rho
+stopifnot(nrow(dat) == njobs)
+stopifnot(with(dat, q10+q11+q12+q2+q3 - q) == 0)
+# dat %>% mutate(q_expected = nsim * choose(ntaxa,4)) %>% filter(q != q_expected)
+stopifnot(with(dat, q == nsim * choose(ntaxa,4)))
+stopifnot(with(dat, unique(A1-q12))==0)
+stopifnot(with(dat, unique(A2-q2)) ==0)
+# all q quartets were analyzable:
+stopifnot(with(dat, unique(B-A))==0) # to check that B=A: all quartets were analyzable
+stopifnot( # check that the sum of all Ds are = B value
+  dat %>% mutate(Dsum = rowSums(across(starts_with("D",ignore.case=F)))) %>%
+  mutate(check = B-Dsum) %>% summarize(isDsumcorret = unique(check)) == 0
+)
+stopifnot(with(dat, sum((D1anom-C1)>0) == 0)) # check that D1anom <= C1
+stopifnot(with(dat, sum((D2anom-C2)>0) == 0))
+stopifnot(with(dat, sum((A1-C1 - D1good)<0) == 0)) # check that A1-C1 >= D1good
+stopifnot(with(dat, sum((A2-C2 - D2good)<0) == 0))
+
+dat = mutate(dat, M = factor(M)) %>% mutate(r_M = factor(mu_lambda):M)
+```
+
+```{r, eval=F}
+summary(dat$time/60) # median: 2.8min/job. Q3=3.3min/job. max: 9.2min/job
+```
+
+for averaged summary stat, use:
+```{r}
+qtot = 800 * (njobs/4/3)
+```
+
+## plot overall anomalies
+
+set choice of shapes to code for 2 variables d0 and hybrid type:
+````{r}
+rM_shape = c(
+  "0.1:0.25" = 15,
+  "0.9:0.25" = 16,
+  "0.1:0.5"  = 0,
+  "0.9:0.5"  = 1
+)
+rM_labels = c(
+  expression(pi["+"]~"="~0.25~~mu/lambda~"="~0.1),
+  expression(pi["+"]~"="~0.25~~mu/lambda~"="~0.9),
+  expression(pi["+"]~"="~"0.50"~~mu/lambda~"="~0.1),
+  expression(pi["+"]~"="~"0.50"~~mu/lambda~"="~0.9)
+)
+d0M_labels = c( # not used
+  expression(d[0]~"="~0.2~~pi["+"]~"="~0.25),
+  expression(d[0]~"="~0.2~~pi["+"]~"="~"0.50"),
+  expression(d[0]~"="~0.6~~pi["+"]~"="~0.25),
+  expression(d[0]~"="~0.6~~pi["+"]~"="~"0.50"),
+  expression(d[0]~"="~1.2~~pi["+"]~"="~0.25),
+  expression(d[0]~"="~1.2~~pi["+"]~"="~"0.50")
+)
+```
+
+```{r}
+plot_overall_anomalies_rho = function(dat_y){ # uses 'y' as response variable name
+  ggplot(dat_y,
+         aes(y, x=factor(rho), color=factor(d_0), shape=r_M)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.4), alpha=0.8) +
+  scale_shape_manual(values=rM_shape, labels=rM_labels) +
+  scale_color_discrete(labels=c(expression(d/lambda~"="~0.2),
+                                expression(d/lambda~"="~0.6),
+                                expression(d/lambda~"="~1.2))) +
+  guides(color=guide_legend(title="", order=1),
+         shape=guide_legend(title="", reverse=T, nrow=2)) +
+  facet_grid(~ lambda) +
+  theme_bw() +
+  theme(plot.subtitle = element_text(hjust=0.5), legend.position = "bottom") +
+  labs(x="inheritance correlation", #expression(turnover~mu/lambda)
+       subtitle=expression(speciation~rate~lambda),
+       title="Anomalous CFs among all 4-taxon networks") +
+  scale_y_continuous(name="proportion anomalous", trans="sqrt",
+                     breaks=c(0,.001,.005,.01,.025,.04,.07,.1,.125,.25), minor_breaks=c(0),
+                     expand=c(0.002,0.01))
+}
+```
+
+the naive way:
+```{r}
+plot_overall_anomalies_rho(mutate(dat, y = (C1+C2)/q))
+ggsave("fig_prob_anomalous12_rho_naive.pdf", height=4.5, width=7)
+```
+
+the liberal way:
+```{r}
+plot_overall_anomalies_rho(mutate(dat, y = (D1anom+D2anom)/q))
+ggsave("fig_prob_anomalous12_rho_lib.pdf", height=4.5, width=7)
+```
+
+the conservative way:
+```{r}
+plot_overall_anomalies_rho(mutate(dat, y = (D1anom+D1ambi + D2anom+D2ambi)/q))
+ggsave("fig_prob_anomalous12_rho_cons.pdf", height=4.5, width=7)
+```
+
+
+## logistic regression
+
+```{r}
+fit_naive = glm((C1+C2)/q ~ lambda + mu_lambda + M + d_0 + rho^2,
+               data=dat, family=binomial, weights=q)
+fit_lib = glm((D1anom+D2anom)/q ~ lambda + mu_lambda + M + d_0 + rho^2,
+               data=dat, family=binomial, weights=q)
+fit_cons = glm((D1anom+D2anom + D1ambi+D2ambi)/q ~ lambda + mu_lambda + M + d_0 + rho^2,
+               data=dat, family=binomial, weights=q)
+drop1(fit_naive, test="Chisq")
+drop1(fit_lib, test="Chisq")
+drop1(fit_cons, test="Chisq")
+```
+
+edited output:
+```
+naive (C1 + C2)/q:
+          Df Deviance    AIC     LRT  Pr(>Chi)
+<none>         475.95 1318.5                  
+lambda     1  1512.64 2353.2 1036.69 < 2.2e-16
+mu_lambda  1   518.08 1358.6   42.13 8.546e-11
+M          1   531.88 1372.4   55.93 7.508e-14
+d_0        1   684.46 1525.0  208.52 < 2.2e-16
+rho        1   504.28 1344.8   28.34 1.020e-07
+
+lib: (D1anom + D2anom)/q:
+          Df Deviance    AIC    LRT  Pr(>Chi)
+<none>         316.15 581.75                 
+lambda     1   377.81 641.41 61.654 4.094e-15
+mu_lambda  1   328.59 592.19 12.439 0.0004205
+M          1   337.57 601.17 21.417 3.695e-06
+d_0        1   396.41 660.01 80.256 < 2.2e-16
+rho        1   380.03 643.63 63.874 1.326e-15
+
+cons (D1anom + D2anom + D1ambi + D2ambi)/q:
+          Df Deviance    AIC     LRT Pr(>Chi)
+<none>         1000.7 2251.3                 
+lambda     1   4072.6 5321.2 3071.90   <2e-16
+mu_lambda  1   1099.2 2347.8   98.48   <2e-16
+M          1   1191.2 2439.8  190.54   <2e-16
+d_0        1   1938.1 3186.6  937.36   <2e-16
+rho        1   1003.5 2252.1    2.80   0.0941
 ```

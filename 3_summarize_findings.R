@@ -13,6 +13,7 @@ table_to_write = data.frame(
   model  = args[10], # 0 = ssa, 1 = gsa
   ngt    = args[11], # baseline number of gene trees for phylocoalsims
   ngenes = NA, # actual number of simulated gene trees: may be higher than baseline
+  rho = args[12],
   q   = NA,
   q10 = NA,
   q11 = NA,

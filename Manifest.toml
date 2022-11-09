@@ -448,7 +448,9 @@ version = "2.4.2"
 
 [[deps.PhyloCoalSimulations]]
 deps = ["Distributions", "PhyloNetworks"]
-git-tree-sha1 = "ad42a9013b5a1a74a15eea6701fe36266b0865fe"
+git-tree-sha1 = "423fb0afb1ca64896432302d23e5a00f9139e0fd"
+repo-rev = "main"
+repo-url = "https://github.com/cecileane/PhyloCoalSimulations.jl.git"
 uuid = "53f7b83a-06b5-4910-9a21-1896bf762ade"
 version = "0.1.0"
 

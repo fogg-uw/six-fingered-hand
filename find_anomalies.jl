@@ -65,7 +65,8 @@ splittype(s) = ( s== [1,1,0,0] || s == [0,0,1,1] ? 0 :
 splitsymbol(st) = (st==0 ? :CF12_34 : (st==1 ? :CF13_24 : :CF14_23))
 
 """
-    quartettype_qCF(net, nsim=200; seed=nothing, verbose=true,
+    quartettype_qCF(net, nsim=200, inheritancecorrelation=0.0;
+                      seed=nothing, verbose=true,
                       threshold_h = Inf,
                       blob_degrees = nothing)
 
@@ -227,7 +228,7 @@ julia> pvalue(BinomialTest(n_cf2, n_cf2 + n_minor), tail=:left) # also with CF2 
 ```
 """
 function quartettype_qCF(net::HybridNetwork, 
-        nsim=200; seed=nothing, verbose=true,
+        nsim=200, inheritancecorrelation=0.0; seed=nothing, verbose=true,
         threshold_h=Inf, blob_degrees=nothing)
 
     taxonlist = sort(tipLabels(net))
@@ -306,12 +307,12 @@ function quartettype_qCF(net::HybridNetwork,
     st3 = setdiff(0:2, [st1,st2])[1]
     o = splitsymbol.([st1,st2,st3])
 
-    df = estimate_qCFs(net, taxonlist, nsim, seed, verbose)
+    df = estimate_qCFs(net, taxonlist, nsim, inheritancecorrelation, seed, verbose)
     qCF = (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]])
     isanomalous = test_anomaly(qCF, nsim, nsplits)
     if isanomalous == :ambiguous # then estimate with 100 times more genes
       nsim = 100 * nsim
-      df = estimate_qCFs(net, taxonlist, nsim, seed, verbose)
+      df = estimate_qCFs(net, taxonlist, nsim, inheritancecorrelation, seed, verbose)
       qCF = (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]])
       isanomalous = test_anomaly(qCF, nsim, nsplits)
     end
@@ -319,7 +320,7 @@ function quartettype_qCF(net::HybridNetwork,
 end
 
 """
-    estimate_qCFs(net, taxonlist, nsim, seed, verbose)
+    estimate_qCFs(net, taxonlist, nsim, inheritancecorrelation, seed, verbose)
 
 Estimate quartet CFs using simulations from PhyloCoalSimulations.
 `net`: should be a 4-taxon network.
@@ -328,9 +329,9 @@ Estimate quartet CFs using simulations from PhyloCoalSimulations.
 
 Output: data frame with 1 row and 8 columns: 4 taxon names, 3 qCFs, and number of simulated genes.
 """
-function estimate_qCFs(net, taxonlist, nsim, seed, verbose)
+function estimate_qCFs(net, taxonlist, nsim, rho, seed, verbose)
   isnothing(seed) || Random.seed!(seed)
-  treelist = simulatecoalescent(net, nsim, 1)
+  treelist = simulatecoalescent(net, nsim, 1; inheritancecorrelation=rho)
   obsCF, t = countquartetsintrees(treelist; showprogressbar=verbose)
 
   taxonlist == t || @error("different order of taxa used by countquartetsintrees (but maybe john's code will help)")
@@ -534,8 +535,8 @@ function test_split3_split12(qCF, ngenes)
   n_cf3  = Int(round(qCF[:split3] * ngenes, digits=8))
   # p = pvalue(BinomialTest(n_cf12, n_cf12 + n_cf3), tail=:left) # CF1 (and CF2) >= CF_minor plausible?
   # 2*p # for Bonferroni correction
-  # level: 1-2*0.05 = 0.90 for the Bonferroni correction
-  cf1_lo, cf1_hi = confint(BinomialTest(n_cf12, n_cf12 + n_cf3), level=0.9)
+  # level: 1-0.05/2 = 0.975 for the Bonferroni correction
+  cf1_lo, cf1_hi = confint(BinomialTest(n_cf12, n_cf12 + n_cf3), level=0.975)
   if 0.5 < cf1_lo
     return :good
   elseif 0.5 > cf1_hi
