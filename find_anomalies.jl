@@ -228,8 +228,8 @@ julia> pvalue(BinomialTest(n_cf2, n_cf2 + n_minor), tail=:left) # also with CF2 
 ```
 """
 function quartettype_qCF(net::HybridNetwork, 
-        nsim=200, inheritancecorrelation=0.0; seed=nothing, verbose=true,
-        threshold_h=Inf, blob_degrees=nothing)
+        nsim=4, inheritancecorrelation=0.0; seed=nothing, verbose=true,
+        threshold_h=Inf, blob_degrees=nothing, memlimit=8*2^30, timelimit = 60)
 
     taxonlist = sort(tipLabels(net))
     length(taxonlist) == 4 || error("there aren't 4 tips: $taxonlist")
@@ -302,19 +302,53 @@ function quartettype_qCF(net::HybridNetwork,
     nsplits == 3 && return nsplits, (split1=-1, split2=-1, split3=-1), mat, DataFrame(:ngenes => 0), false, missing, false
 
     # otherwise: simulate gene trees!
+
     st1 = splittype(mat[1,:])
     st2 = (nsplits > 1 ? splittype(mat[2,:]) : mod(st1+1,3))
     st3 = setdiff(0:2, [st1,st2])[1]
     o = splitsymbol.([st1,st2,st3])
 
-    df = estimate_qCFs(net, taxonlist, nsim, inheritancecorrelation, seed, verbose)
-    qCF = (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]])
-    isanomalous = test_anomaly(qCF, nsim, nsplits)
-    if isanomalous == :ambiguous # then estimate with 100 times more genes
-      nsim = 100 * nsim
-      df = estimate_qCFs(net, taxonlist, nsim, inheritancecorrelation, seed, verbose)
-      qCF = (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]])
-      isanomalous = test_anomaly(qCF, nsim, nsplits)
+    global isanomalous = :ambiguous # we don't know if there's an anomaly...
+    global time = 0
+    global mem = 0
+    global nsim_i = nsim
+    global nsim_tot = 0
+    global seed_i = seed
+    global firstloop = true
+
+    while isanomalous == :ambiguous && time < timelimit # ...so simulate until we do (or run out of time)
+
+      if !firstloop
+        olddf = df # remember stats about past sims
+        global seed_i += 1 # don't repeat sims
+        # how many sims to do?  if memory still loose, double current total; o/w, same as last time
+        if mem < memlimit
+          global nsim_i = nsim_tot
+        end
+      end
+
+      # do simulations (and record time + memory stats)
+      df_timed = @timed estimate_qCFs(net, taxonlist, nsim_i, inheritancecorrelation, seed, verbose)
+      global df   = df_timed[:value]
+      global time = df_timed[:time ] + time # cumulative time over all iterations
+      global mem  = df_timed[:bytes]
+      global nsim_tot = nsim_tot + nsim_i
+
+      # integrate new results with old ones, if applicable
+      if !firstloop
+        n1 = nsim_i
+        n2 = olddf[1, :ngenes]
+        for CF in (:CF12_34, :CF13_24, :CF14_23)
+          x1 = df[   1, CF]
+          x2 = olddf[1, CF]
+          df[1,CF] = (x1*n1 + x2*n2)/(n1+n2)
+        end
+        df[1, :ngenes] = nsim_tot
+      end
+      
+      global qCF = (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]])
+      global isanomalous = test_anomaly(qCF, nsim_tot, nsplits)
+      global firstloop = false
     end
     return nsplits, qCF, mat, df, is32blob, isanomalous, flag_class
 end
