@@ -328,7 +328,7 @@ function quartettype_qCF(net::HybridNetwork,
       end
 
       # do simulations (and record time + memory stats)
-      df_timed = @timed estimate_qCFs(net, taxonlist, nsim_i, inheritancecorrelation, seed, verbose)
+      df_timed = @timed estimate_qCFs(net, taxonlist, nsim_i, inheritancecorrelation, seed_i, verbose)
       global df   = df_timed[:value]
       global time = df_timed[:time ] + time # cumulative time over all iterations
       global mem  = df_timed[:bytes]
