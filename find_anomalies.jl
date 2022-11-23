@@ -228,8 +228,19 @@ julia> pvalue(BinomialTest(n_cf2, n_cf2 + n_minor), tail=:left) # also with CF2 
 ```
 """
 function quartettype_qCF(net::HybridNetwork, 
-        nsim=4, inheritancecorrelation=0.0; seed=nothing, verbose=true,
-        threshold_h=Inf, blob_degrees=nothing, memlimit=8*2^30, timelimit = 60)
+        nsim=8, inheritancecorrelation=0.0; seed=nothing, verbose=true,
+        threshold_h=Inf, blob_degrees=nothing, memlimit=4*2^30, timelimit = 60,
+        alpha=0.001)
+    # why alpha=0.001?  because heuristically it may be reasonable to 
+    # have alpha about 1 order of magnitude smaller than the rate of
+    # anomalies, which past simulations suggest may be around 0.01.
+    # why nsim=8?  because if we have a class 1 network with qCFs = (1,0,0),
+    # and alpha=0.001,
+    # then we have 0% power at nsim=6 and 100% power at nsim=7, and 8
+    # is the smallest power of 2 larger than 7.
+    # why memlimit = 4*2^30?  because franklin01 has about 8*2^30 bytes
+    # per core.
+    # why time limit = 60?  why not?
 
     taxonlist = sort(tipLabels(net))
     length(taxonlist) == 4 || error("there aren't 4 tips: $taxonlist")
@@ -347,7 +358,7 @@ function quartettype_qCF(net::HybridNetwork,
       end
       
       global qCF = (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]])
-      global isanomalous = test_anomaly(qCF, nsim_tot, nsplits)
+      global isanomalous = test_anomaly(qCF, nsim_tot, nsplits, alpha)
       global firstloop = false
     end
     return nsplits, qCF, mat, df, is32blob, isanomalous, flag_class
@@ -542,20 +553,20 @@ Output:
 `:good` if there is sufficient evidence for the null hypothesis,
 `:ambiguous` if the confidence interval includes the threshold (1/3 or 1/5 resp.)
 """
-function test_anomaly(qCF, ngenes, nsplits)
+function test_anomaly(qCF, ngenes, nsplits, alpha)
   if nsplits == 1
-    return test_split1_onethird(qCF, ngenes)
+    return test_split1_onethird(qCF, ngenes, alpha)
   elseif nsplits == 2
-    return test_split3_split12(qCF, ngenes)
+    return test_split3_split12(qCF, ngenes, alpha)
   else
     @error "nsplits should be 1 or 2"
     return missing
   end
 end
-function test_split1_onethird(qCF, ngenes)
+function test_split1_onethird(qCF, ngenes, alpha=0.05)
   n_cf1 = Int(round(qCF[:split1] * ngenes, digits=8))
   # p = pvalue(BinomialTest(n_cf1, ngenes, 1/3), tail=:left) # CF_major >= 1/3 plausible?
-  cf1_lo, cf1_hi = confint(BinomialTest(n_cf1, ngenes, 1/3), level=0.95)
+  cf1_lo, cf1_hi = confint(BinomialTest(n_cf1, ngenes, 1/3), level=1-alpha)
   if 1/3 < cf1_lo
     return :good
   elseif 1/3 > cf1_hi
@@ -563,14 +574,14 @@ function test_split1_onethird(qCF, ngenes)
   end
   return :ambiguous
 end
-function test_split3_split12(qCF, ngenes)
+function test_split3_split12(qCF, ngenes, alpha=0.05)
   qCF12 = min(qCF[:split1], qCF[:split2]) # split that will give the smallest p-value
   n_cf12 = Int(round(qCF12        * ngenes, digits=8))
   n_cf3  = Int(round(qCF[:split3] * ngenes, digits=8))
   # p = pvalue(BinomialTest(n_cf12, n_cf12 + n_cf3), tail=:left) # CF1 (and CF2) >= CF_minor plausible?
   # 2*p # for Bonferroni correction
-  # level: 1-0.05/2 = 0.975 for the Bonferroni correction
-  cf1_lo, cf1_hi = confint(BinomialTest(n_cf12, n_cf12 + n_cf3), level=0.975)
+  # level: 1-alpha/2 for the Bonferroni correction
+  cf1_lo, cf1_hi = confint(BinomialTest(n_cf12, n_cf12 + n_cf3), level=1-alpha/2)
   if 0.5 < cf1_lo
     return :good
   elseif 0.5 > cf1_hi
