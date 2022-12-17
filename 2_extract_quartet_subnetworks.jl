@@ -4,7 +4,7 @@ where the input files should exist.
 input files: ./SiPhyNetwork_output/sim*.tree
 output file: ./quartets.csv
 
-usage: julia ../2_extract_quartet_subnetworks.jl [ngt] [delete1]
+usage: julia ../2_extract_quartet_subnetworks.jl seed ngt rho delete1
 
 options:
 ngt = number of gene trees for PCS to simulate per quartet network.
