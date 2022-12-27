@@ -1,5 +1,6 @@
 
 summarize_findings = function(args) {
+# initialize summary table: 1 row per scenario (=job)
 table_to_write = data.frame(
   seed   = args[01], # random seed
   nsim   = args[02], # number of networks to simulate
@@ -14,28 +15,34 @@ table_to_write = data.frame(
   ngt    = args[11], # baseline number of gene trees for phylocoalsims
   ngenes = NA, # actual number of simulated gene trees: may be higher than baseline
   rho = args[12],
-  q   = NA,
-  q10 = NA,
-  q11 = NA,
-  q12 = NA,
-  q2  = NA,
-  q3  = NA,
-  A   = NA,
-  A1  = NA,
-  A2  = NA,
-  B   = NA,
+  q   = NA, # total # of 4-taxon sets: ntaxa choose 4 x number of simulated nets
+  q10 = NA, # number of tree-like 4-taxon sets
+  q11 = NA, # number of 4-taxon sets with a 3_1 blob
+  q12 = NA, # number of 4-taxon sets with a 3_2 blob
+  q2  = NA, # number of 4-taxon sets displaying 2 splits
+  q3  = NA, # number of 4-taxon sets displaying 3 splits
+  A   = NA, # q12 + q2: when anomalies are theoretically possible
+  A1  = NA, # q12: 1 split but 3_2 blob
+  A2  = NA, # q2 : 2 splits
+  B   = NA, # subset of A for which simulation was successful
   C   = NA,
   C1  = NA,
   C2  = NA,
-  D0good = NA, # for network without any 4-blob or any 3_2 blob: cannot be anomalous theoretically
+  D0good = NA, # tree or 3_1 blob, and estimated as NOT anomalous
   D0anom = NA,
   D0ambi = NA,
   D1good = NA, # not anomalous
   D1anom = NA, # anomalous
-  D1ambi = NA, # ambiguous: confidence interval contained anomaly threshold (even with more gene trees)
+  D1ambi = NA, # ambiguous: CI has anomaly threshold, even with more gene trees
   D2good = NA,
   D2anom = NA,
-  D2ambi = NA
+  D2ambi = NA,
+  D0g_ex = NA, # same, but from exact calculation of expected qCFs
+  D0a_ex = NA, # anomalous. No ambiguity with exact calculation
+  D1g_ex = NA, # not anomalous
+  D1a_ex = NA, # anomalous
+  D2g_ex = NA,
+  D2a_ex = NA
 )
 if(!("quartets.csv" %in% dir())) return(table_to_write)
 quartets = read.csv("quartets.csv")
@@ -84,15 +91,22 @@ quartets$C  = quartets$C1 | quartets$C2
 # D1: class-1 networks with a 3_2 blob
 # D2: class-2 network (with a 4-blob but only 2 displayed trees)
 
-quartets$D0good = with(quartets, (q10 | q11) & B & (is_anomalous == "good"))
-quartets$D0anom = with(quartets, (q10 | q11) & B & (is_anomalous == "anomalous"))
-quartets$D0ambi = with(quartets, (q10 | q11) & B & (is_anomalous == "ambiguous"))
+quartets$D0good = with(quartets, (q10 | q11) & (split1 > -1) & (is_anomalous == "good"))
+quartets$D0anom = with(quartets, (q10 | q11) & (split1 > -1) & (is_anomalous == "anomalous"))
+quartets$D0ambi = with(quartets, (q10 | q11) & (split1 > -1) & (is_anomalous == "ambiguous"))
 quartets$D1good = with(quartets, A1 & B & (is_anomalous == "good"))
 quartets$D1anom = with(quartets, A1 & B & (is_anomalous == "anomalous"))
 quartets$D1ambi = with(quartets, A1 & B & (is_anomalous == "ambiguous"))
 quartets$D2good = with(quartets, A2 & B & (is_anomalous == "good"))
 quartets$D2anom = with(quartets, A2 & B & (is_anomalous == "anomalous"))
 quartets$D2ambi = with(quartets, A2 & B & (is_anomalous == "ambiguous"))
+
+quartets$D0g_ex = with(quartets, (q10 | q11) & (s1_exact >= 1/3))
+quartets$D0a_ex = with(quartets, (q10 | q11) & (s1_exact <  1/3))
+quartets$D1g_ex = with(quartets, A1 & (s1_exact >= 1/3))
+quartets$D1a_ex = with(quartets, A1 & (s1_exact <  1/3))
+quartets$D2g_ex = with(quartets, A2 & (s3_exact <= s1_exact) & (s3_exact <= s2_exact))
+quartets$D2a_ex = with(quartets, A2 & ((s3_exact > s1_exact) | (s3_exact > s2_exact)))
 
 quartets$n1 = as.integer(quartets$qCF_n * quartets$split1)
 quartets$n2 = as.integer(quartets$qCF_n * quartets$split2)
@@ -121,6 +135,12 @@ table_to_write$D1ambi = sum(quartets$D1ambi)
 table_to_write$D2good = sum(quartets$D2good)
 table_to_write$D2anom = sum(quartets$D2anom)
 table_to_write$D2ambi = sum(quartets$D2ambi)
+table_to_write$D0g_ex = sum(quartets$D0g_ex)
+table_to_write$D0a_ex = sum(quartets$D0a_ex)
+table_to_write$D1g_ex = sum(quartets$D1g_ex)
+table_to_write$D1a_ex = sum(quartets$D1a_ex)
+table_to_write$D2g_ex = sum(quartets$D2g_ex)
+table_to_write$D2a_ex = sum(quartets$D2a_ex)
 
 return(table_to_write)
 

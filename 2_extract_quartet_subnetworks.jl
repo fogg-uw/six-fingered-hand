@@ -1,6 +1,9 @@
-#= usage
-start from directory "jobi" with i = index of scenario
-where the input files should exist.
+#= Estimate (with simulations) and calculate (exactly) the expected CFs
+   of all quartets, for all simulated networks within a "job", where
+   1 job = 1 scenario = 1 combination of parameter choices
+
+usage: navigate to the directory "jobi" with i = index of scenario
+       where the input files should exist.
 input files: ./SiPhyNetwork_output/sim*.tree
 output file: ./quartets.csv
 
@@ -9,6 +12,10 @@ usage: julia ../2_extract_quartet_subnetworks.jl seed ngt rho delete1
 options:
 ngt = number of gene trees for PCS to simulate per quartet network.
 delete1 = 1,0 is whether to delete 1 (one) leaf from each network before doing anything else with it (like examining quartets).
+
+*Warning*:
+the exact calculation assumes independent inheritance (rho=0) (so far at least)
+but it is run for all values of rho regardless.
 =#
 
 using PhyloNetworks
@@ -29,41 +36,26 @@ if !(delete1 == 0 || delete1 == 1)
 	delete1 = 0
 end
 
-Random.seed!(seed)
-
-#need to loop over trees
-
+jobid = replace(basename(pwd()), r"job(\d+)$" => s"\1") # string, but could be parsed as Int if needed
 inputdir = "SiPhyNetwork_output/"
-files = readdir(inputdir)
-files = filter(x -> occursin(r"sim\d+\.tree", x), files)
+netfile_regex = r"sim(\d+)\.tree"
+files =  filter!(x -> occursin(netfile_regex, x), readdir(inputdir))
 N = length(files)
-dfts = repeat([DataFrame()], N) # N data frames, one for each tree, later compressed into one data frame
 
-# "global" scalar variables (exist outside of trees; mostly for debugging)
+outfile = "quartets.csv"
 
-readTopologySuccess = zeros(Int8, N)
-readTopologyFailures = repeat("", N)
+## first: find anomalies by simulating gene trees
+# @info "job $jobid: starting simulations to estimate CFs, loop over $N networks"
 
-function analyzeTreeFile(treefile::String, treenum::Int64)
+Random.seed!(seed)
+dfts = repeat([DataFrame()], N) # 1 data frame per network, later concatenated into a single data frame
 
-	#print(treefile * '\n')
+function analyzeTreeFile(treefile::String)
 
-	m = match(r"sim(\d+)\.tree", treefile)
+	m = match(netfile_regex, treefile)
 	sim_num = parse(Int16, m.captures[1])
-
-	tree = PhyloNetworks.Network
-
-	try
-		tree = readTopology(joinpath(inputdir, treefile))
-	catch
-		print("couldn't read topology")
-		readTopologyFailures[treenum] = treefile
-		return(NA)
-	end
-	readTopologySuccess[treenum] = 1
-
+	tree = readTopology(joinpath(inputdir, treefile))
 	deleteaboveLSA!(tree)
-
 	# randomly sample 1 tip to prune, if requested by user
 	if delete1==1
 		taxa = tipLabels(tree)
@@ -71,19 +63,13 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 		deleteleaf!(tree, pruneit, simplify=false, nofuse=false)
 	end
 
-	taxa = tipLabels(tree)
+	taxa = sort(tipLabels(tree))
 	numTaxa = length(taxa)
+	numTaxa < 4 && error("fewer than 4 taxa, no quartets exist. simulated networks should have 4+ taxa!")
 
 	# loop over quartets
-
-	if numTaxa < 4
-		print("fewer than 4 taxa, no quartets exist\n")
-		return(NA)
-	end
-
 	quartets = collect(combinations(1:numTaxa,4))
 	nquartets = length(quartets)
-	
 	dft = DataFrame(
 		sim_num = repeat([sim_num], nquartets),
 		quartet_num  = repeat([""], nquartets),
@@ -98,16 +84,15 @@ function analyzeTreeFile(treefile::String, treenum::Int64)
 		flag_class   = zeros(Bool, nquartets), # is the class be perhaps underestimated?
 		ngenes = zeros(Int, nquartets),
 		is_anomalous = Vector{Union{Missing, Symbol}}(missing, nquartets),
+		s1_from      = Vector{Symbol}(undef, nquartets),
+		s2_from      = Vector{Symbol}(undef, nquartets),
+		s3_from      = Vector{Symbol}(undef, nquartets),
 	)
-
 	Threads.@threads for j = 1:nquartets
-		#print(treefile * string(quartets[j]) * '\n')
 		dft[j,2] = string(quartets[j])
 		dft[j,3:end] = analyzeQuartet(quartets[j], taxa, tree; seed=seed)[1,:] # each quartet returns a DataFrame with one row and no sim_num
 	end
-
 	return(dft)
-
 end
 
 function analyzeQuartet(quartet, taxa, tree; seed=nothing)
@@ -124,6 +109,9 @@ function analyzeQuartet(quartet, taxa, tree; seed=nothing)
 		flag_class = false,
 		ngenes = 0,
 		is_anomalous = Vector{Union{Missing, Symbol}}(missing,1),
+		s1_from = :undef,
+		s2_from = :undef,
+		s3_from = :undef,
 		)
 
 	quartet_taxa = taxa[quartet]
@@ -150,7 +138,7 @@ function analyzeQuartet(quartet, taxa, tree; seed=nothing)
 	dfq[1,"num3blob_col"] = quartet_num3blob
 	dfq[1,"num4blob_col"] = quartet_num4blob
 
-	ns, qCF, _, tmpdf, is32blob, isanomalous, flag = quartettype_qCF(quartettree, ngt, rho;
+	ns, qCF, _, tmpdf, is32blob, isanomalous, flag, o = quartettype_qCF(quartettree, ngt, rho;
 	    verbose=false, blob_degrees=quartet_blob_degree, seed=seed)
 
 	dfq[1,"nsplit"] = ns
@@ -162,27 +150,66 @@ function analyzeQuartet(quartet, taxa, tree; seed=nothing)
 	dfq[1,:flag_class] = flag
 	dfq[1,:ngenes] = Int(tmpdf[1,:ngenes])
 	dfq[1,:is_anomalous] = isanomalous
+	dfq[1,:s1_from] = o[1]
+	dfq[1,:s2_from] = o[2]
+	dfq[1,:s3_from] = o[3]
 
 	return(dfq)
-
 end
 
 for i = 1:N
-	dfts[i] = analyzeTreeFile(files[i], i)
+	dfts[i] = analyzeTreeFile(files[i])
+end
+bigdf = vcat(dfts...)
+# CSV.write(outfile, bigdf)
+
+## second: find anomalies by calculating exact quartet CFs
+# @info "job $jobid: starting calculation of CFs, loop over $N networks"
+
+using QuartetNetworkGoodnessFit
+const PN = PhyloNetworks
+
+function quartetT_as_df(quartets::Vector{PN.QuartetT{T}}, sim_num) where T <: AbstractVector
+  V = eltype(T)
+  V <: Real || error("expected real data values")
+  fourtax(q) = string(q.taxonnumber) # string(indexorder[q.taxonnumber])
+  df = DataFrame(sim_num=Int[], quartet_num=String[],
+            CF12_34=V[],CF13_24=V[],CF14_23=V[])
+  for q in quartets
+    push!(df, (sim_num, fourtax(q), q.data...) )
+  end
+  return df
 end
 
-global bigdf = dfts[1]
-for i in 2:N
-	global bigdf = vcat(bigdf, dfts[i])
+dfts = repeat([DataFrame()], N) # 1 data frame per network, later concatenated
+
+# loop over simulated networks
+Threads.@threads for i in 1:N
+  netfile = files[i]
+  m = match(netfile_regex, netfile)
+  sim_num = parse(Int16, m.captures[1])
+  net = readTopology(joinpath(inputdir, netfile))
+  q,t = network_expectedCF(net, showprogressbar=false) # loops over 4-taxon sets
+  t == sort(tipLabels(net)) || error("job $jobid, $netfile: sorted taxa and t don't match. taxa=$(taxa) and t=$t")
+  dfts[i] = quartetT_as_df(q,sim_num)
 end
+# combine data frames across all networks
+bigdf_exp = vcat(dfts...)
+# CSV.write(outfile, bigdf_exp)
+ntotal = nrow(bigdf)
+nrow(bigdf_exp) == ntotal || error("simulated and exact CF tables with different # of rows")
 
-try
-	rm("quartets.csv")
-catch
-	nothing
+# use simulation df to find which of the 3 CFs are split1,2,3
+df_both = outerjoin(bigdf, bigdf_exp; on=[:sim_num,:quartet_num])
+nrow(df_both) == ntotal || error("combined df with $(nrow(df_both)) rows instead of $ntotal")
+function findsplit123(o123, cfe)
+  names = [:CF12_34,:CF13_24,:CF14_23]
+  nt = (; zip(names, cfe)...)
+  return collect(nt[o123])
 end
-CSV.write("quartets.csv", bigdf)
+transform!(df_both,
+  [:s1_from,:s2_from,:s3_from, :CF12_34,:CF13_24,:CF14_23] =>
+  ByRow( (o1,o2,o3, c1,c2,c3) -> findsplit123((o1,o2,o3), (c1,c2,c3)) ) =>
+  [:s1_exact,:s2_exact,:s3_exact])
 
-
-
-
+CSV.write(outfile, df_both) # overwrites any pre-existing file of same name

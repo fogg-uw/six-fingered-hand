@@ -21,7 +21,7 @@ options(show.signif.stars=F)
 read the data: results summarized by step 3.
 
 ```{r}
-resultfile = "results_base.csv" # "results_20221103_withD0.csv"
+resultfile = "results_base.csv"
 dat = read.csv(resultfile) %>% mutate(d=d_0) %>%
   mutate(d_0 = round(d*lambda,10),
          mu_lambda = round(mu/lambda,10), # 0.1 or 0.9
@@ -74,6 +74,27 @@ dat = mutate(dat, ntaxa=factor(ntaxa), M = factor(M)) %>%
       mutate(ntaxa_M = ntaxa:M)
 ```
 
+sanity check: using exact calculation of qCFs, all subnetworks that
+are tree-like or have 3_1 blobs but no 3_2 blobs should be good:
+D0a_ex should always be 0.
+```{r, }
+dat[which(dat$D0a_ex > 0), c(1,4:10,13:21,37:42)]
+```
+3 problems: jobs 117 (2), 141 (1), 144 (1).
+Very rare: 3 out of 16294+13526+14293 = 44113 four-taxon sets in these 3 jobs,
+plus all other four-taxon sets in the other 141 jobs.
+
+```{r, }
+job117 = read.csv("results_base/job117/quartets.csv")
+job117 %>% filter(num4blob_col==0, is32blob=="false", s1_exact<1/3)
+```
+there are indeed 2 subnetworks satisfying these conditions: both in `sim_num=607`,
+with taxa `[1, 3, 5, 7]` and `[3, 4, 5, 7]` (indices after sorting taxon labels),
+and it's not numerical innacuracy: `s1_exact`=0.3090289, the other 2 splits
+have `0.3454855`. Using simulations, `split1,2,3` are 0.3078,0.3464667,0.3457333
+for one 4-taxon set, similar for the other.
+
+
 ```{r, eval=F}
 summary(dat$time/60) # median: 21min/job. Q3=58min/job. max: 226min = 3.7h/job
 # total running time was 4h 13min, bc 64 cores for 144 jobs.
@@ -101,6 +122,8 @@ datsum = dat %>% group_by(lambda,d_0) %>%
             anomalous2_lib  = sum(D2anom),
             anomalous1_cons = sum(D1anom) + sum(D1ambi),
             anomalous2_cons = sum(D2anom) + sum(D2ambi),
+            anomalous1_ex = sum(D1a_ex),
+            anomalous2_ex = sum(D2a_ex),
             .groups="drop") %>%
   mutate(prop_anomalous_naive = (anomalous1_naive + anomalous2_naive)/qtot,
          prop_anomalous_lib  = (anomalous1_lib  + anomalous2_lib )/qtot,
@@ -112,7 +135,10 @@ datsum = dat %>% group_by(lambda,d_0) %>%
          prob_anomalous1_lib  = anomalous1_lib /class1_32blob,
          prob_anomalous2_lib  = anomalous2_lib /class2,
          prob_anomalous1_cons = anomalous1_cons/class1_32blob,
-         prob_anomalous2_cons = anomalous2_cons/class2
+         prob_anomalous2_cons = anomalous2_cons/class2,
+         prop_anomalous_ex = (anomalous1_ex  + anomalous2_ex)/qtot,
+         prop_anomalous1_ex = anomalous1_ex/class1_32blob,
+         prop_anomalous2_ex = anomalous1_ex/class2,
          )
 stopifnot(with(datsum, class1 + class2 + class3) == qtot)
 datsum %>% select(lambda, d_0, starts_with("prop_")) %>% arrange(prop_anomalous_naive)
@@ -184,7 +210,7 @@ ggsave("fig_prob_class2.pdf", height=4.5, width=7)
 
 ## plots: % anomalies within classes
 
-the naive way.
+from simulations, the naive way.
 
 proportion of anomalous networks among those with a 3_2 blob:
 
@@ -298,6 +324,13 @@ the conservative way:
 ```{r}
 plot_overall_anomalies(mutate(dat, y = (D1anom+D1ambi + D2anom+D2ambi)/q))
 ggsave("fig_prob_anomalous12_cons.pdf", height=4.5, width=7)
+```
+
+from exact qCF calculations:
+
+```{r}
+plot_overall_anomalies(mutate(dat, y = (D1a_ex+D2a_ex)/q))
+ggsave("fig_prob_anomalous12_ex.pdf", height=4.5, width=7)
 ```
 
 # effect of inheritance correlation

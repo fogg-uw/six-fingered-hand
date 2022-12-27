@@ -1,8 +1,12 @@
 [deps]
+AlgebraOfGraphics = "cbdf2221-f076-402e-a563-3d30da359d67"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 HypothesisTests = "09f84164-cd44-5f33-b23f-e6b0d136a0d5"
 PhyloCoalSimulations = "53f7b83a-06b5-4910-9a21-1896bf762ade"
 PhyloNetworks = "33ad39ac-ed31-50eb-9b15-43d0656eaa72"
 PhyloPlots = "c0d5b6db-e3fc-52bc-a87d-1d050989ed3b"
+QuartetNetworkGoodnessFit = "1382f7fc-2744-4d9d-8ec6-1e3efdec0746"
+RCall = "6f49c342-dc21-5d91-9882-a32aef131414"

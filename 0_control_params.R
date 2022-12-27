@@ -121,7 +121,7 @@ parallel_job = function(i) {
   
   jobdir = paste0("job", i)
   tic(jobdir)
-  cat(paste('start', jobdir, '\n'))
+  # cat(paste('start', jobdir, '\n'))
   if(run_step[1]) { # then we need to clean the directory.  o/w leave alone
     unlink(jobdir, recursive = TRUE)
     dir.create(jobdir)
@@ -151,7 +151,7 @@ parallel_job = function(i) {
   }
   
   setwd(startingdir)
-  cat('finish', jobdir, '\n')
+  # cat('finish', jobdir, '\n')
   time = toc()
   return(time$toc - time$tic)
 }
