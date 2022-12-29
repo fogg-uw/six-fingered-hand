@@ -68,7 +68,8 @@ splitsymbol(st) = (st==0 ? :CF12_34 : (st==1 ? :CF13_24 : :CF14_23))
     quartettype_qCF(net, nsim=200, inheritancecorrelation=0.0;
                       seed=nothing, verbose=true,
                       threshold_h = Inf,
-                      blob_degrees = nothing)
+                      blob_degrees = nothing,
+                      attempt_resolve_ambiguity = false)
 
 Calculate the quartet type of quartet concordance factors (CFs) of a
 4-taxon network. The quartet type is described by a matrix with 1 row
@@ -97,6 +98,7 @@ output:
 - symbol `:anomalous` `:ambiguous` or `:good` from comparing the confidence interval
   for the quartet CF of interest (major or minor) with the anomalous threshold
   (1/3 or either 1st or 2st split CF). If :ambiguous with `nsim` gene trees,
+  and if `attempt_resolve_ambiguity` is true,
   the simulation is repeated with `100 * nsim` gene trees to attempt to remove
   the ambiguity (this number of genes is reflected in the data frame).
   `missing` if 3 splits.
@@ -241,7 +243,8 @@ julia> pvalue(BinomialTest(n_cf2, n_cf2 + n_minor), tail=:left) # also with CF2 
 """
 function quartettype_qCF(net::HybridNetwork, 
         nsim=200, inheritancecorrelation=0.0; seed=nothing, verbose=true,
-        threshold_h=Inf, blob_degrees=nothing)
+        threshold_h=Inf, blob_degrees=nothing,
+        attempt_resolve_ambiguity=false)
 
     taxonlist = sort(tipLabels(net))
     length(taxonlist) == 4 || error("there aren't 4 tips: $taxonlist")
@@ -330,7 +333,8 @@ function quartettype_qCF(net::HybridNetwork,
     df = estimate_qCFs(net, taxonlist, nsim, inheritancecorrelation, seed, verbose)
     qCF = (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]])
     isanomalous = test_anomaly(qCF, nsim, nsplits)
-    if isanomalous == :ambiguous # then estimate with 100 times more genes
+    if attempt_resolve_ambiguity && isanomalous == :ambiguous
+      # then estimate with 100 times more genes
       nsim = 100 * nsim
       df = estimate_qCFs(net, taxonlist, nsim, inheritancecorrelation, seed, verbose)
       qCF = (split1=df[1,o[1]], split2=df[1,o[2]], split3=df[1,o[3]])

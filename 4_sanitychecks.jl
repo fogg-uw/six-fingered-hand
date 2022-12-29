@@ -8,25 +8,26 @@ cd /nobackup2/ane/simulation-pathologyquartets/results_base/
 =#
 
 ## check agreement btw qCFs exact and estimated with simulation
-#  using job117 only, but all 800 networks
+#  results_base: using job117 only, but all 800 networks
+#  results_rho: using jobs 136 (rho=0.6) and 280 (rho=1), all 800 nets in each
 
-jobid = 117
-jobdir = joinpath("results_base", "job$jobid")
-netdir = joinpath(jobdir, "SiPhyNetwork_output")
-qfile = joinpath(jobdir, "quartets.csv")
+case = "base" # "rho" # "base"
+jobid = (case == "base" ? 117 : [136, 280])
+jobdir(id) = joinpath("results_$case", "job$id")
+netdir(id) = joinpath(jobdir(id), "SiPhyNetwork_output")
+qfile(id) = joinpath(jobdir(id), "quartets.csv")
 
 ##
 
-qdat = DataFrame(CSV.File(qfile))
+qdat = vcat([DataFrame(CSV.File(qfile(id))) for id in jobid]...)
 select!(qdat, r"^[sqni]")
 filter!(:nsplit => n -> n<3, qdat) # CFs not estimated if 3 splits
-@show nrow(qdat) # 52585 four-taxon sets
+@show nrow(qdat) # 52585 (base) or 1585 (rho) four-taxon sets
 
 tck = [0,1/3,0.5,1]; tcklab = ["0","1/3","0.5","1"]
 
 plt1 = data(qdat) * mapping(
-  :split1,
-  :s1_exact => "exact CF";
+  :s1_exact, :split1;
   row = :ngenes => nonnumeric,
 ) * visual(; alpha=0.2, markersize=2);
 plt2 = data(qdat) *
@@ -38,9 +39,10 @@ plt3 = data(qdat) *
 plt = plt1 + plt2 + plt3;
 fig = draw(plt;
  axis=(width=200, height=200, aspect=1,
+       xlabel="exact CF", ylabel="simulated CF",
        xticks=(tck,tcklab), yticks=(tck,tcklab)),
 )
-save("qCF_exactvssimulated.pdf", fig)
+save("qCF_exactvssimulated_$case.pdf", fig)
 
 ## job117, network 607: why no 3_2 blob yet CF1 < 1/3 ?
 
@@ -51,7 +53,7 @@ include("find_anomalies.jl")
 ## read offending network and 4-taxon subnet
 
 simid = "607"
-net = readTopology(joinpath(netdir, "sim$simid.tree")) # 8 tips, h=5
+net = readTopology(joinpath(netdir(jobid[1]), "sim$simid.tree")) # 8 tips, h=5
 taxa = sort(tipLabels(net))
 q1i = [1, 3, 5, 7]; q1 = taxa[q1i] # l10 l8 t15 t5
 q2i = [3, 4, 5, 7]; q2 = taxa[q2i] #  l8 l9 t15 t5

@@ -12,10 +12,6 @@ usage: julia ../2_extract_quartet_subnetworks.jl seed ngt rho delete1
 options:
 ngt = number of gene trees for PCS to simulate per quartet network.
 delete1 = 1,0 is whether to delete 1 (one) leaf from each network before doing anything else with it (like examining quartets).
-
-*Warning*:
-the exact calculation assumes independent inheritance (rho=0) (so far at least)
-but it is run for all values of rho regardless.
 =#
 
 using PhyloNetworks
@@ -140,6 +136,7 @@ function analyzeQuartet(quartet, taxa, tree; seed=nothing)
 
 	ns, qCF, _, tmpdf, is32blob, isanomalous, flag, o = quartettype_qCF(quartettree, ngt, rho;
 	    verbose=false, blob_degrees=quartet_blob_degree, seed=seed)
+	# using default attempt_resolve_ambiguity: false
 
 	dfq[1,"nsplit"] = ns
 	dfq[1,"qCF_n"] = ngt
@@ -189,7 +186,7 @@ Threads.@threads for i in 1:N
   m = match(netfile_regex, netfile)
   sim_num = parse(Int16, m.captures[1])
   net = readTopology(joinpath(inputdir, netfile))
-  q,t = network_expectedCF(net, showprogressbar=false) # loops over 4-taxon sets
+  q,t = network_expectedCF(net, showprogressbar=false, inheritancecorrelation=rho) # loops over 4-taxon sets
   t == sort(tipLabels(net)) || error("job $jobid, $netfile: sorted taxa and t don't match. taxa=$(taxa) and t=$t")
   dfts[i] = quartetT_as_df(q,sim_num)
 end
