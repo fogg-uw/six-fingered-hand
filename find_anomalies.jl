@@ -65,6 +65,78 @@ splittype(s) = ( s== [1,1,0,0] || s == [0,0,1,1] ? 0 :
 splitsymbol(st) = (st==0 ? :CF12_34 : (st==1 ? :CF13_24 : :CF14_23))
 
 """
+    has32cycle!(net, bcc=missing, blobdegree=missing, blobexit=missing)
+    has32cycle(blobdegree, exitnodes, blobedges)
+
+Whether network `net` or one of its blob with known `exitnodes` contains
+a 3_2 cycle as a subnetwork.
+Assumptions *not* checked: `net` should have 4 taxa, no 4-blob, and be unrooted.
+
+Strategy, to avoid extracting all subnetworks:
+1. a lowest hybrid node has 2 descendants => has 32 cycle
+2. exit nodes have at most 2 descendants total => does NOT have 32 cycle
+3. 1 single hybrid in the blob with 1 descendant => NOT a 32 cycle
+4. else: remove a lowest hybrid node and determine recursively.
+   when doing so: the network is deepcopied to remove the minor hybrid parent,
+   and is modified to remove the major hybrid parent edge.
+
+The first method calls the second, returns true or false.
+The second method returns true in case 1, false in cases 2 and 3, missing in case 4.
+"""
+function has32cycle!(net::HybridNetwork)
+  bcc, blobdegree = blob_degree(net)
+  blobexit = PhyloNetworks.biconnectedcomponent_exitnodes(net, bcc, false)
+  res_byblob = [has32cycle(blobdegree[i],blobexit[i],bcc[i]) for i in eachindex(bcc)]
+  res = any(res_byblob)   # at least 1 of the blobs contains a 3_2 cycle
+  !ismissing(res) && res && return true
+  res = all(.!res_byblob) # none of the blobs contain a 3_2 cycle
+  !ismissing(res) && res && return false
+  # by now: all blobs have either false or missing, and at least one blob has missing
+  # missing: when at most 2 descendants, and only 1 per hybrid exit.
+  # unrooting net ensures that there's at most 1 blob with missing info
+  missingbi = findall(ismissing, res_byblob)
+  length(missingbi) == 1 || error("more than 1 blob has missing 32cycle info: res_byblob=$res_byblob, blobexit=$blobexit, net=$(writeTopology(net))")
+  bi = missingbi[1]
+  ni = findfirst(en -> en.hybrid, blobexit[bi])
+  isnothing(ni) && error("blob $bi without an exit hybrid node: blobexit=$blobexit, net=$(writeTopology(net))")
+  hybnum = blobexit[bi][ni].number # number of exit hybrid node
+  hybind = findfirst(n -> n.number == hybnum, net.node) # index: nodes will be deepcopied
+  isnothing(hybind) && error("hybnode not found in net: hybnum=$hybnum, index $ni in blobexit[bi]=$(blobexit[bi]), net=$(writeTopology(net))")
+  # delete minor parent: return true if subnetwork has 3_2 cycle
+  minornet = deepcopy(net)
+  hp = PhyloNetworks.getMinorParentEdge(minornet.node[hybind])
+  PhyloNetworks.deletehybridedge!(minornet, hp, false, true)
+  has32cycle!(minornet) && return true
+  # delete major parent: return true if subnetwork has 3_2 cycle
+  hp = PhyloNetworks.getMajorParentEdge(net.node[hybind])
+  PhyloNetworks.deletehybridedge!(net, hp, false, true)
+  return has32cycle!(net)
+end
+
+function has32cycle(bdegree::Integer, exitnodes::AbstractVector, blobedges::AbstractVector)
+  bdegree < 3 && return false
+  totaldes = 0
+  for en in exitnodes
+    # find exit edge: *the* child edge of exit node 'en' that is not in the blob
+    exitedge = nothing # child edge not in the blob
+    for ee in en.edge
+      PhyloNetworks.getParent(ee) === en || continue
+      ee in blobedges && continue
+      exitedge = ee
+      break
+    end
+    ndes = length(PhyloNetworks.descendants(exitedge))
+    en.hybrid && ndes == 2 && return true
+    totaldes += ndes
+  end
+  # by now, all exit hybrid have 1 descendant only
+  totaldes < 3 && return false
+  # if the blob is a cycle: not a 3_2 cycle
+  sum(e.hybrid for e in blobedges) <= 2 && return false
+  return missing
+end
+
+"""
     quartettype_qCF(net, nsim=200, inheritancecorrelation=0.0;
                       seed=nothing, verbose=true,
                       threshold_h = Inf,
@@ -249,7 +321,7 @@ function quartettype_qCF(net::HybridNetwork,
     taxonlist = sort(tipLabels(net))
     length(taxonlist) == 4 || error("there aren't 4 tips: $taxonlist")
     if isnothing(blob_degrees)
-      blob_degrees = blob_degree(net) # defined in find_blobs_and_degree.jl
+      blob_degrees = blob_degree(net)
     end
     bcc     = blob_degrees[1]
     bdegree = blob_degrees[2]
@@ -258,23 +330,9 @@ function quartettype_qCF(net::HybridNetwork,
     if all(bdegree .< 4)
     # if the network doesn't have any 4-blob, then it's of class 1:
     # extract hardwired clusters, and determine if there's a 3_2 blob
-      blobexit = PhyloNetworks.biconnectedcomponent_exitnodes(net, bcc, false)
-      for i in eachindex(bcc)
-        bdegree[i] == 3 || continue # skip 2-blobs
-        for hn in blobexit[i]
-          hn.hybrid || continue # skip tree nodes
-          # bug above! --although depending on how we define "3_2 blobs".
-          # we should consider exit tree nodes that are below *some* hybrid within the blob,
-          # but not any, e.g. not hybrid nodes at 2-cycles.
-          # ideally: we want to know if the blob contains a 3_2 cycle as a subnetwork...
-          # sister pair below hybrid node => contains a 3_2 cycle, but <= isn't true.
-          des = PhyloNetworks.descendants(PhyloNetworks.getMajorParentEdge(hn))
-          if length(des) == 2
-            is32blob = true
-            break # don't look at other exit nodes
-          end
-        end
-      end
+      netcp = deepcopy(net)
+      PhyloNetworks.fuseedgesat!(netcp.root, netcp)
+      is32blob = has32cycle!(netcp) #, bcc, bdegree)
       # get the one split from hardwired clusters
       nsplits = 1
       mat = Bool.(hardwiredClusters(net, taxonlist)[1:end,2:(end-1)])
