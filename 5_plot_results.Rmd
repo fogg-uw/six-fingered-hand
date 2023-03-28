@@ -222,7 +222,8 @@ mysqrt_trans <- function() {
 }
 ```
 
-proportion of 4-taxon networks with 3_2 blobs:
+proportion of 4-taxon networks with 3_2 blobs, that is,
+a 3-blob containing a 3_2 cycle:
 
 ```{r}
 p11 = ggplot(dat,
@@ -236,7 +237,7 @@ p11 = ggplot(dat,
   theme_bw() +
   theme(legend.position="bottom", legend.margin=margin(0,10,0,10)) +
   labs(x=expression(turnover~rate~mu/lambda)) +
-  scale_y_continuous(name=expression("%"~networks~with~a~3[2]~blob)) +
+  scale_y_continuous(name=expression("% class 1"~with~3[2]~cycle)) +
   expand_limits(y=0.6) # to include 0 as a tickmark, but no extra padding
   # trans="sqrt" is too strong
 # ggsave("fig_prob_32blob.pdf", height=4, width=7, device=cairo_pdf)
@@ -256,7 +257,7 @@ p12 = ggplot(dat,
   theme_bw() +
   theme(legend.position="bottom", legend.margin=margin(0,10,0,10)) +
   labs(x=expression(turnover~rate~mu/lambda)) +
-  scale_y_continuous(name="% class-2 networks")
+  scale_y_continuous(name="% class 2")
   # trans="sqrt" is too strong
 # ggsave("fig_prob_class2.pdf", height=4, width=7, device=cairo_pdf)
 ```
@@ -301,9 +302,11 @@ p21 = ggplot(filter(dat, q12>0),
   theme_bw() +
   theme(legend.position = "bottom") +
   labs(x="(distance threshold d) / \u03BB") +
-  scale_y_continuous(name="% anomalous among 3-2 blobs",
+  scale_y_continuous(name=expression("in class 1"~with~3[2]~cycle),
+                     # "% anomalous among class-1 networks with 3-2 cycle",
                      trans="mysqrt", # "sqrt",
-                     breaks=c(0,.001,.01,.05,.1,.2,.5,.75,1)*100,
+                     breaks=             c(0,.001,.01,.05,.1,.2,.5)*100,
+                     labels=as.character(c(0,.001,.01,.05,.1,.2,.5)*100),
                      minor_breaks=c(0), expand=c(.001,.1))
 #ggsave("fig_prob_anomalous1_32blob_ex.pdf", height=4, width=7, device=cairo_pdf)
 ```
@@ -345,9 +348,10 @@ p22 = ggplot(filter(dat, q2>0),
   theme_bw() +
   theme(legend.position = "bottom") +
   labs(x="(distance threshold d) / \u03BB") +
-  scale_y_continuous(name="% anomalous among class-2 networks",
+  scale_y_continuous(name="in class 2", # "% anomalous among class-2 networks
                      trans="mysqrt", # "sqrt",
-                     breaks=c(0,.001,.01,.05,.1,.2,.3,.4,.75,1)*100,
+                     breaks=             c(0,.001,.01,.05,.1,.2,.3,.4)*100,
+                     labels=as.character(c(0,.001,.01,.05,.1,.2,.3,.4)*100),
                      minor_breaks=c(0), expand=c(0.001,0.1))
 # ggsave("fig_prob_anomalous2_ex.pdf", height=4, width=7, device=cairo_pdf)
 ```
@@ -390,7 +394,9 @@ ggsave("fig_prob_anomalous_withinclass.pdf", p2,
 ## overall proportion of anomalous networks
 
 ```{r}
-plot_overall_anomalies = function(dat_y, seed=10){
+plot_overall_anomalies = function(dat_y, seed=10,
+      breaks=c(0,.001,.01,.025,.05,.075,.1,.125,.25)*100,
+      breaklabels=c("0","0.1","1.0","2.5","5.0","7.5","10","12.5","25")){
   # uses 'y' as response variable name
   ggplot(dat_y,
          aes(y*100, x=factor(d_0), color=factor(mu_lambda), shape=ntaxa_M)) +
@@ -406,7 +412,7 @@ plot_overall_anomalies = function(dat_y, seed=10){
   xlab("(distance threshold d) / \u03BB") +
   ylab("% anomalous networks") +
   scale_y_continuous(trans="mysqrt", # "sqrt",
-                     breaks=c(0,.001,.01,.025,.05,.075,.1,.125,.25)*100,
+                     breaks=breaks, labels=breaklabels,
                      minor_breaks=c(0),
                      expand=c(0.002,0.05)) +
   expand_limits(y=0)
@@ -418,14 +424,16 @@ from observed CFs in 300 simulated gene trees:
 
 ```{r}
 p32 = plot_overall_anomalies(mutate(dat, y = (C1+C2)/q)) +
-  ylab("% observed anomalous in 300 loci")
+  ylab("% empirically anomalous") # or: % observed anomalous in 300 loci
 # ggsave("fig_prob_anomalous_naive_300g.pdf", height=4, width=6, device=cairo_pdf)
 ```
 
 from exact qCF calculations:
 
 ```{r}
-p31 = plot_overall_anomalies(mutate(dat, y = (D1a_ex+D2a_ex)/q))
+p31 = plot_overall_anomalies(mutate(dat, y = (D1a_ex+D2a_ex)/q),
+                             breaks=c(0,.001,.005,.008,.01)*100,
+                             breaklabels=c(0,.001,.005,.008,.01)*100)
 # ggsave("fig_prob_anomalous_ex.pdf", height=4, width=6, device=cairo_pdf)
 ```
 
@@ -568,7 +576,9 @@ rM_labels = c(
 
 ```{r}
 plot_overall_anomalies_rho =
-  function(dat_y, seed=10, dw=0.4, expand=c(0.002,0.1)){
+  function(dat_y, seed=10, dw=0.4, expand=c(0.002,0.1),
+           breaks=c(0,.001,.005,.01,.02,.05,.08)*100,
+           breaklabels=as.character(breaks)){
   # uses 'y' as response variable name. dw = dodge.width
   ggplot(dat_y,
          aes(y=y*100, x=factor(rho), color=factor(d_0), shape=r_M)) +
@@ -583,10 +593,10 @@ plot_overall_anomalies_rho =
   facet_grid(~ lambda, labeller = labeller(lambda=lambda.labs)) +
   theme_bw() +
   theme(legend.position = "bottom") +
-  xlab("inheritance correlation") +
+  xlab(expression("inheritance correlation"~rho)) +
   ylab("% anomalous networks") +
   scale_y_continuous(trans="mysqrt", # "sqrt",
-                     breaks=c(0,.001,.005,.01,.02,.05,.08)*100,
+                     breaks=breaks, labels=breaklabels,
                      minor_breaks=c(0),
                      expand=expand)
 }
@@ -595,7 +605,7 @@ plot_overall_anomalies_rho =
 the naive way:
 ```{r}
 p42 = plot_overall_anomalies_rho(mutate(dat_rho, y = (C1+C2)/q), seed=10) +
-  ylab("% observed anomalous in 300 loci")
+  ylab("% empirically anomalous") # or: % observed anomalous in 300 loci
 # ggsave("fig_prob_anomalous_rho_naive_300g.pdf", height=4, width=7, device=cairo_pdf)
 ```
 
@@ -627,7 +637,8 @@ proportion of anomalous networks among those with a 3_2 blob:
 
 ```{r}
 plot_class_anomalies_rho =
-  function(dat_y, ylab, seed=4, dw=0.4, expand=c(0.002,0.1)){
+  function(dat_y, ylab, seed=4, dw=0.4, expand=c(0.002,0.1),
+           breaks=c(0,.005,.01,.02,.05,.1)*100, breaklabels=as.character(breaks)){
   ggplot(dat_y,
          aes(y=y*100, x=factor(rho), color=factor(d_0), shape=r_M)) +
   geom_point(position=position_jitterdodge(dodge.width=dw, seed=seed),
@@ -641,9 +652,9 @@ plot_class_anomalies_rho =
   facet_grid(~ lambda, labeller = labeller(lambda=lambda.labs)) +
   theme_bw() +
   theme(legend.position = "bottom") +
-  xlab("inheritance correlation") + ylab(ylab) +
+  xlab(expression("inheritance correlation"~rho)) + ylab(ylab) +
   scale_y_continuous(trans="mysqrt", # "sqrt",
-                     breaks=c(0,.005,.01,.02,.05,.1)*100,
+                     breaks=breaks, labels=breaklabels,
                      minor_breaks=c(0),
                      expand=expand)
 }
@@ -654,7 +665,7 @@ class-1 plot, and sample size behind each point:
 ```{r}
 p51 = plot_class_anomalies_rho(
   mutate(filter(dat_rho, q12>0), y = (D0a_ex+D1a_ex)/(q12)),
-  ylab="% anomalous among 3-2 blobs",
+  ylab=expression("in class 1"~with~3[2]~cycle), # % anomalous among 3-2 blobs
   seed=7, dw=0.5, expand=c(0.002,0.2))
 
 filter(dat_rho, q12>0) %>%
@@ -675,7 +686,7 @@ class-2 plot, and sample size behind each point:
 ```{r}
 p52 = plot_class_anomalies_rho(
   mutate(filter(dat_rho, q2>0), y = (D2a_ex)/q2),
-  ylab="% anomalous among class-2 networks",
+  ylab="in class 2", # % anomalous among class-2 networks
   seed=7, dw=0.5)
 
 filter(dat_rho, q2>0) %>%
