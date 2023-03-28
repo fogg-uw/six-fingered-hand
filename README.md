@@ -1,18 +1,15 @@
-# six-fingered-hand
+# simulation to quantify the prevalence of anomalous 4-taxon networks
 
-2022-06-13: moving files from john's home machine to this github repository.  (they still only work on john's home machine.)
+## how to run the pipeline
 
-2022-08-30: works on franklin00, running many scenarios in parallel.
-
-pipeline: put everything in one folder.  open file #0.
-set parameters as you wish.
-run file #0 from command line, like this to run all steps:
+open file #0: edit as desired to set parameters.  
+run file #0 from command line, like this to run all first 3 steps:
 
 ```shell
 Rscript 0_control_params.R
 ```
 
-or like this to run step 1 only (network simulation with SiPhyNetwork)
+or like this to run step 1 only (network simulation with SiPhyNetwork).
 Replace 1 by 2 or by 3 to run step 2 only (network classification and
 gene tree simulation with PhyloCoalSimulations),
 or step 3 only (summarize all replicates from each scenario):
@@ -30,6 +27,15 @@ do
   ls $jobdir/SiPhyNetwork_output/sim*.tree | wc -l
 done
 ```
+
+Step 4 files (starting with `4_*`) are for sanity checks, and
+to compare the age of the simulated networks with the genetic distance
+threshold above which reticulation fails.
+
+Step 5, to plot results (after sanity checks) and make figures using R:
+see `5_plot_results.Rmd`.
+
+Non-numbered `.jl` julia files: helper functions used in steps 2 and 4.
 
 ## dependencies
 

@@ -44,7 +44,7 @@ fig = draw(plt;
 )
 save("qCF_exactvssimulated_$case.pdf", fig)
 
-## job117, network 607: why no 3_2 blob yet CF1 < 1/3 ?
+## job117, network 607: no 3_2 blob yet CF1 < 1/3
 
 using PhyloNetworks
 using RCall, PhyloPlots
@@ -78,7 +78,7 @@ is32blob # false!
 blobexit = PhyloNetworks.biconnectedcomponent_exitnodes(n1, bcc, false) # correct
 
 #= conclusions:
-- how to best define 3_2 blobs?
-- if: "3-blob with a sister pair below hybrid node",
-  then there are anomalous networks with a 3-blob that's not a 3_2 blob.
+- change definition of 3_2 blobs to mean: "containing a 3_2 cycle".
+- 3-blob with a sister pair below hybrid node => has 3_2 cycle
+  but the converse is not true.
 =#
