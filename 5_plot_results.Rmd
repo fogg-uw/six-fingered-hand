@@ -237,7 +237,7 @@ p11 = ggplot(dat,
   theme_bw() +
   theme(legend.position="bottom", legend.margin=margin(0,10,0,10)) +
   labs(x=expression(turnover~rate~mu/lambda)) +
-  scale_y_continuous(name=expression("% class 1"~with~3[2]~cycle)) +
+  scale_y_continuous(name=expression("% class 1"~with~3[2]-cycle)) +
   expand_limits(y=0.6) # to include 0 as a tickmark, but no extra padding
   # trans="sqrt" is too strong
 # ggsave("fig_prob_32blob.pdf", height=4, width=7, device=cairo_pdf)
@@ -302,7 +302,7 @@ p21 = ggplot(filter(dat, q12>0),
   theme_bw() +
   theme(legend.position = "bottom") +
   labs(x="(distance threshold d) / \u03BB") +
-  scale_y_continuous(name=expression("in class 1"~with~3[2]~cycle),
+  scale_y_continuous(name=expression("in class 1"~with~3[2]-cycle),
                      # "% anomalous among class-1 networks with 3-2 cycle",
                      trans="mysqrt", # "sqrt",
                      breaks=             c(0,.001,.01,.05,.1,.2,.5)*100,
@@ -665,7 +665,7 @@ class-1 plot, and sample size behind each point:
 ```{r}
 p51 = plot_class_anomalies_rho(
   mutate(filter(dat_rho, q12>0), y = (D0a_ex+D1a_ex)/(q12)),
-  ylab=expression("in class 1"~with~3[2]~cycle), # % anomalous among 3-2 blobs
+  ylab=expression("in class 1"~with~3[2]-cycle), # % anomalous among 3-2 blobs
   seed=7, dw=0.5, expand=c(0.002,0.2))
 
 filter(dat_rho, q12>0) %>%
